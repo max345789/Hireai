@@ -1,156 +1,73 @@
-# HireAI — AI-Powered Hiring Command Center
+# HireAI
 
-An AI-driven recruitment platform with WhatsApp outreach, automated phone/chat interviews, email campaigns, Google Calendar integration, and Razorpay billing.
+HireAI is a full-stack AI Agent Command Center for real-estate teams.
+It unifies WhatsApp, email, and web chat into one workspace where Claude-powered automation can qualify leads, book viewings, and escalate when needed.
 
----
+## Stack
+- Frontend: React + Vite + Tailwind
+- Backend: Node.js + Express + Socket.io
+- Database: SQLite
+- AI: Anthropic Claude (`claude-sonnet-4-20250514`)
+- Channels: Twilio WhatsApp/SMS, Gmail SMTP, Web Widget
 
-## Features
-
-- **AI Interviews** — Automated voice + chat interviews powered by Claude AI
-- **WhatsApp & SMS Outreach** — Bulk messaging via Twilio
-- **Email Campaigns** — Gmail SMTP / SendGrid integration
-- **Candidate Pipeline** — Kanban-style tracking with AI scoring
-- **Google Calendar** — Auto-schedule interviews
-- **Job Widget** — Embeddable careers page widget
-- **Razorpay Billing** — INR subscription plans (Starter / Pro / Team)
-- **Dark / Light Mode** — Toggle in sidebar
-
----
-
-## Tech Stack
-
-| Layer    | Tech                                      |
-|----------|-------------------------------------------|
-| Frontend | React + Vite + Tailwind CSS               |
-| Backend  | Node.js + Express                         |
-| Database | SQLite (better-sqlite3)                   |
-| AI       | Anthropic Claude API                      |
-| Payments | Razorpay                                  |
-| Comms    | Twilio (WhatsApp/SMS) + Gmail SMTP        |
-| Auth     | JWT                                       |
-
----
-
-## Quick Start (Local Development)
-
-### Prerequisites
-- Node.js 18+
-- npm
-
-### 1. Clone and install
+## Local Setup
 
 ```bash
-git clone https://github.com/your-username/hireai.git
-cd hireai
-
-# Install server deps
-cd server && npm install && cd ..
-
-# Install client deps
-cd client && npm install && cd ..
+npm run install:all
+cp .env.example .env
+npm run seed
+npm run dev
 ```
 
-### 2. Configure environment
+App URLs:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:3001`
+- Widget script: `http://localhost:3001/widget.js`
 
-```bash
-cp server/.env.example server/.env
-# Edit server/.env and fill in your keys
-```
-
-Required keys to get started:
-- `ANTHROPIC_API_KEY` — from console.anthropic.com
-- `JWT_SECRET` — any long random string (already pre-set in template)
-
-### 3. Run
-
-```bash
-# Terminal 1 — Backend
-cd server && npm run dev
-
-# Terminal 2 — Frontend
-cd client && npm run dev
-```
-
-Open http://localhost:3000
-
-Default login:
+Default demo login:
 - Email: `admin@hireai.local`
 - Password: `password123`
 
----
+## Commands
 
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ | Claude AI key |
-| `JWT_SECRET` | ✅ | Random 32+ char string |
-| `BASE_URL` | ✅ | Your domain (no trailing slash) |
-| `TWILIO_ACCOUNT_SID` | Optional | For WhatsApp/SMS |
-| `TWILIO_AUTH_TOKEN` | Optional | For WhatsApp/SMS |
-| `TWILIO_WHATSAPP_NUMBER` | Optional | +1234567890 |
-| `TWILIO_SMS_NUMBER` | Optional | +1234567890 |
-| `GMAIL_USER` | Optional | For email campaigns |
-| `GMAIL_APP_PASSWORD` | Optional | Gmail app password |
-| `RAZORPAY_KEY_ID` | Optional | Razorpay Key ID |
-| `RAZORPAY_KEY_SECRET` | Optional | Razorpay Key Secret |
-| `RAZORPAY_WEBHOOK_SECRET` | Optional | Razorpay webhook signing secret |
-
----
-
-## Deployment
-
-See [DEPLOY.md](./DEPLOY.md) for full instructions:
-- **Railway + Vercel** (recommended, free tier available)
-- **Docker Compose** (self-hosted VPS)
-- **GitHub Actions** CI/CD setup
-
----
-
-## Razorpay Plans (INR)
-
-| Plan | Price | Candidates | AI Interviews |
-|---|---|---|---|
-| Starter | ₹14,999/month | 500 | 100/month |
-| Pro | ₹29,999/month | 2,000 | 500/month |
-| Team | ₹54,999/month | Unlimited | Unlimited |
-
-To go live: replace `rzp_test_...` keys with `rzp_live_...` keys from [dashboard.razorpay.com](https://dashboard.razorpay.com).
-
----
-
-## Project Structure
-
-```
-hireai/
-├── server/               # Express backend
-│   ├── routes/           # API routes (auth, candidates, billing, etc.)
-│   ├── services/         # Business logic (AI, Razorpay, email, etc.)
-│   ├── middleware/        # Auth middleware
-│   ├── data/             # SQLite database (auto-created)
-│   └── index.js          # Entry point
-├── client/               # React frontend
-│   ├── src/
-│   │   ├── pages/        # Page components
-│   │   ├── components/   # Shared UI components
-│   │   └── lib/          # API client, theme context
-│   └── public/           # Static assets
-├── docker-compose.yml
-├── Dockerfile
-├── nginx.conf
-└── DEPLOY.md
+```bash
+npm run dev
+npm run test
+npm run build
+npm run seed
+npm run backup --prefix server
+npm run restore --prefix server -- /absolute/path/to/backup.db
 ```
 
----
+## Key APIs
+- `POST /api/agent/process`
+- `POST /api/simulate/message`
+- `POST /api/webhook/whatsapp`
+- `POST /api/webhook/email`
+- `POST /api/widget/session`
+- `POST /api/widget/message`
+- `GET /api/channels/status`
+- `GET /api/analytics/today`
+- `GET /api/health`
+- `GET /api/ready`
 
-## Apps & Ports
+## Production Hardening Included
+- Request ID + structured logging
+- CORS allowlist (`CORS_ORIGINS`)
+- Helmet security headers
+- Auth/webhook/widget rate limiting
+- Input validation on critical write routes
+- Idempotency middleware (`Idempotency-Key`) for mutation routes
+- Webhook dedupe for Twilio/email retry safety
+- Redacted + truncated webhook payload storage
+- CI workflow for server tests + client build + API smoke checks
 
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:3001`
-- Widget Script: `http://localhost:3001/widget.js`
+## Documentation
+- Production checklist: `docs/PRODUCTION-CHECKLIST.md`
+- Runbooks:
+  - `docs/runbooks/incident-response.md`
+  - `docs/runbooks/channel-outage.md`
+  - `docs/runbooks/backup-restore.md`
 
----
-
-## License
-
-MIT
+## Environment
+Use `.env.example` as the source of truth for required variables.

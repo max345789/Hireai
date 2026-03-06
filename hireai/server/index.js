@@ -11,9 +11,14 @@ const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 
 const { initDb, getDb } = require('./db');
+const { env, startupConfigChecks } = require('./config/env');
+const { requestContext } = require('./middleware/requestContext');
+const { notFound, errorHandler } = require('./middleware/errorHandler');
+const logger = require('./services/logger');
+
 const User = require('./models/User');
 const Message = require('./models/Message');
-const Lead = require('./models/Lead');
+const IdempotencyKey = require('./models/IdempotencyKey');
 const { processMessage } = require('./services/agentBrain');
 
 const authRoutes = require('./routes/auth');
@@ -28,61 +33,117 @@ const bookingRoutes = require('./routes/bookings');
 const billingRoutes = require('./routes/billing');
 const { runAllSweeps } = require('./services/followupEngine');
 
-const PORT = Number(process.env.PORT || 3001);
-
 const app = express();
 const server = http.createServer(app);
 
+let dbReady = false;
+
+function isOriginAllowed(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  if (!env.corsOrigins.length) {
+    return !env.isProd;
+  }
+
+  return env.corsOrigins.includes(origin);
+}
+
+const ioCorsOrigin = env.corsOrigins.length ? env.corsOrigins : (env.isProd ? false : true);
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: ioCorsOrigin,
     credentials: true,
   },
 });
 
+app.set('trust proxy', 1);
 app.set('io', io);
 
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: false,
+    hsts: env.isProd,
   })
 );
 
 app.use(
   cors({
-    origin: true,
+    origin(origin, callback) {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-Id'],
+    exposedHeaders: ['X-Request-Id'],
   })
 );
 
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: env.requestBodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: env.requestBodyLimit }));
+app.use(requestContext);
 app.use(express.static(path.join(__dirname, '..', 'client', 'public')));
 
-const webhookLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+function limiter(name, windowMs, max) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler(req, res) {
+      res.status(429).json({
+        error: `Rate limit exceeded for ${name}`,
+        requestId: req.requestId,
+      });
+    },
+  });
+}
 
-const widgetLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const webhookLimiter = limiter('webhooks', env.webhookRateWindowMs, env.webhookRateMax);
+const widgetLimiter = limiter('widget', env.widgetRateWindowMs, env.widgetRateMax);
+const authLimiter = limiter('auth', env.authRateWindowMs, env.authRateMax);
 
 app.use('/api/webhook', webhookLimiter);
 app.use('/api/widget', widgetLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 io.on('connection', (socket) => {
   socket.emit('system:connected', { connectedAt: new Date().toISOString() });
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'hireai-server' });
+  res.json({
+    ok: true,
+    service: 'hireai-server',
+    env: env.nodeEnv,
+    uptimeSec: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    dbReady,
+  });
+});
+
+app.get('/api/ready', async (_req, res) => {
+  if (!dbReady) {
+    return res.status(503).json({ ok: false, reason: 'database_not_ready' });
+  }
+
+  try {
+    const db = await getDb();
+    await db.get('SELECT 1 AS ok');
+    return res.json({ ok: true });
+  } catch (error) {
+    return res.status(503).json({ ok: false, reason: error.message });
+  }
 });
 
 app.use('/api', webhooksRoutes);
@@ -96,9 +157,8 @@ app.use('/api', agentRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', billingRoutes);
 
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
+app.use(notFound);
+app.use(errorHandler);
 
 function connectionStatus() {
   const claudeConnected = Boolean(process.env.ANTHROPIC_API_KEY);
@@ -117,18 +177,31 @@ function connectionStatus() {
 function printStartupBanner() {
   const status = connectionStatus();
 
+  // eslint-disable-next-line no-console
   console.log('🚀 HireAI Server Running');
+  // eslint-disable-next-line no-console
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
+  // eslint-disable-next-line no-console
   console.log(`${status.claudeConnected ? '✅' : '⚠️ '} Claude API: ${status.claudeConnected ? 'Connected' : 'Not configured (fallback mode)'}`);
+  // eslint-disable-next-line no-console
   console.log('✅ Database: Ready');
+  // eslint-disable-next-line no-console
   console.log('✅ Socket.io: Active');
+  // eslint-disable-next-line no-console
   console.log(`${status.twilioConnected ? '✅' : '⚠️ '} Twilio: ${status.twilioConnected ? 'Configured' : 'Not configured (simulation mode)'}`);
+  // eslint-disable-next-line no-console
   console.log(`${status.gmailConnected ? '✅' : '⚠️ '} Gmail: ${status.gmailConnected ? 'Configured' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
   console.log(`${process.env.RAZORPAY_KEY_ID ? '✅' : '⚠️ '} Razorpay: ${process.env.RAZORPAY_KEY_ID ? 'Configured' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
   console.log(`${process.env.GOOGLE_CLIENT_ID ? '✅' : '⚠️ '} Google Calendar: ${process.env.GOOGLE_CLIENT_ID ? 'Configured' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
+  // eslint-disable-next-line no-console
   console.log('🤖 Agent Status: ACTIVE');
+  // eslint-disable-next-line no-console
   console.log('📨 Simulation Mode: ON');
+  // eslint-disable-next-line no-console
   console.log('📅 Follow-up Engine: ACTIVE (every 30 min)');
 }
 
@@ -144,7 +217,10 @@ async function ensureDefaultUser() {
     agentPersonality: 'Warm, proactive, and concise',
   });
 
-  console.log('Created default user: admin@hireai.local / password123');
+  logger.warn('created_default_user', {
+    email: 'admin@hireai.local',
+    note: 'Update this credential immediately in non-demo environments.',
+  });
 }
 
 async function runFollowupSweep() {
@@ -172,39 +248,81 @@ async function runFollowupSweep() {
 }
 
 function scheduleJobs() {
-  // Legacy sweep (kept for safety)
   cron.schedule('0 * * * *', async () => {
     try {
       await runFollowupSweep();
     } catch (error) {
-      console.error('Follow-up sweep failed:', error.message);
+      logger.error('legacy_followup_sweep_failed', { error: error.message });
     }
   });
 
-  // Full follow-up engine — runs every 30 minutes
   cron.schedule('*/30 * * * *', async () => {
     try {
       await runAllSweeps(io);
-      console.log('[FollowupEngine] Sweep complete');
+      logger.info('followup_sweep_complete');
     } catch (error) {
-      console.error('[FollowupEngine] Sweep failed:', error.message);
+      logger.error('followup_sweep_failed', { error: error.message });
+    }
+  });
+
+  cron.schedule('0 */6 * * *', async () => {
+    try {
+      const deleted = await IdempotencyKey.deleteExpired();
+      logger.info('idempotency_cleanup_complete', { deleted });
+    } catch (error) {
+      logger.error('idempotency_cleanup_failed', { error: error.message });
     }
   });
 }
 
+function validateStartupConfig() {
+  const checks = startupConfigChecks();
+  let fatal = false;
+
+  for (const check of checks) {
+    if (check.level === 'error') {
+      fatal = true;
+      logger.error('startup_config_error', { message: check.message });
+    } else {
+      logger.warn('startup_config_warning', { message: check.message });
+    }
+  }
+
+  if (fatal) {
+    throw new Error('Startup config validation failed');
+  }
+}
+
 async function start() {
+  validateStartupConfig();
   await initDb();
+  dbReady = true;
   await ensureDefaultUser();
   scheduleJobs();
 
-  server.listen(PORT, () => {
+  server.listen(env.port, () => {
     printStartupBanner();
-    console.log(`🌐 API URL: http://localhost:${PORT}`);
-    console.log(`🧩 Widget URL: http://localhost:${PORT}/widget.js`);
+    logger.info('server_started', {
+      port: env.port,
+      apiUrl: `http://localhost:${env.port}`,
+      widgetUrl: `http://localhost:${env.port}/widget.js`,
+      corsOrigins: env.corsOrigins,
+    });
   });
 }
 
+process.on('unhandledRejection', (reason) => {
+  logger.error('unhandled_rejection', {
+    error: reason instanceof Error ? reason.message : String(reason),
+  });
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('uncaught_exception', { error: error.message, stack: error.stack });
+  process.exit(1);
+});
+
 start().catch((error) => {
-  console.error('Failed to start server', error);
+  logger.error('failed_to_start_server', { error: error.message, stack: error.stack });
   process.exit(1);
 });

@@ -22,14 +22,28 @@ function isConfigured() {
 async function sendWhatsApp(to, message) {
   const client = getClient();
   const from = normalizeWhatsAppNumber(process.env.TWILIO_WHATSAPP_NUMBER);
+  const body = String(message || '').trim();
+  const target = String(to || '').trim();
+
+  if (!target || !body) {
+    return {
+      mocked: true,
+      sid: null,
+      channel: 'whatsapp',
+      to: target || null,
+      body,
+      success: false,
+      error: 'Missing recipient or message body',
+    };
+  }
 
   if (!client || !from) {
     return {
       mocked: true,
       sid: null,
       channel: 'whatsapp',
-      to,
-      body: message,
+      to: target,
+      body,
       success: true,
     };
   }
@@ -38,15 +52,15 @@ async function sendWhatsApp(to, message) {
     const response = await client.messages.create({
       body: message,
       from,
-      to: normalizeWhatsAppNumber(to),
+      to: normalizeWhatsAppNumber(target),
     });
 
     return {
       mocked: false,
       sid: response.sid,
       channel: 'whatsapp',
-      to,
-      body: message,
+      to: target,
+      body,
       success: true,
       raw: response,
     };
@@ -55,8 +69,8 @@ async function sendWhatsApp(to, message) {
       mocked: false,
       sid: null,
       channel: 'whatsapp',
-      to,
-      body: message,
+      to: target,
+      body,
       success: false,
       error: error.message,
     };
@@ -66,31 +80,45 @@ async function sendWhatsApp(to, message) {
 async function sendSMS(to, message) {
   const client = getClient();
   const from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER?.replace('whatsapp:', '');
+  const body = String(message || '').trim();
+  const target = String(to || '').trim();
+
+  if (!target || !body) {
+    return {
+      mocked: true,
+      sid: null,
+      channel: 'sms',
+      to: target || null,
+      body,
+      success: false,
+      error: 'Missing recipient or message body',
+    };
+  }
 
   if (!client || !from) {
     return {
       mocked: true,
       sid: null,
       channel: 'sms',
-      to,
-      body: message,
+      to: target,
+      body,
       success: true,
     };
   }
 
   try {
     const response = await client.messages.create({
-      body: message,
+      body,
       from,
-      to,
+      to: target,
     });
 
     return {
       mocked: false,
       sid: response.sid,
       channel: 'sms',
-      to,
-      body: message,
+      to: target,
+      body,
       success: true,
       raw: response,
     };
@@ -99,8 +127,8 @@ async function sendSMS(to, message) {
       mocked: false,
       sid: null,
       channel: 'sms',
-      to,
-      body: message,
+      to: target,
+      body,
       success: false,
       error: error.message,
     };

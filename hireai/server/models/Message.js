@@ -29,11 +29,18 @@ class Message {
 
   static async updateDelivery(id, { externalSid, deliveryStatus, error }) {
     const db = await getDb();
+    const current = await this.getById(id);
+    if (!current) return null;
+
+    const nextExternalSid = externalSid === undefined ? current.externalSid : externalSid;
+    const nextStatus = deliveryStatus === undefined ? current.deliveryStatus : deliveryStatus;
+    const nextError = error === undefined ? current.error : error;
+
     await db.run(
       `UPDATE messages
-       SET externalSid = COALESCE(?, externalSid), deliveryStatus = COALESCE(?, deliveryStatus), error = COALESCE(?, error)
+       SET externalSid = ?, deliveryStatus = ?, error = ?
        WHERE id = ?`,
-      [externalSid || null, deliveryStatus || null, error || null, id]
+      [nextExternalSid, nextStatus, nextError, id]
     );
     return this.getById(id);
   }

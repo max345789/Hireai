@@ -7,6 +7,8 @@ const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
 const WebhookEvent = require('../models/WebhookEvent');
+const IdempotencyKey = require('../models/IdempotencyKey');
+const logger = require('../services/logger');
 
 const router = express.Router();
 
@@ -70,7 +72,7 @@ async function addInboundMessage(io, { lead, channel, content, externalSid = nul
   return inMessage;
 }
 
-async function handlePausedLead(io, lead, channel, reason) {
+async function handlePausedLead(io, lead, channel, reason, escalate = true) {
   const activity = await ActivityLog.create({
     leadId: lead.id,
     leadName: lead.name,
@@ -81,17 +83,18 @@ async function handlePausedLead(io, lead, channel, reason) {
   });
 
   emit(io, 'agent:action', activity);
-  emit(io, 'agent:escalated', {
-    leadId: lead.id,
-    leadName: lead.name,
-    reason,
-    channel,
-  });
+  if (escalate) {
+    emit(io, 'agent:escalated', {
+      leadId: lead.id,
+      leadName: lead.name,
+      reason,
+      channel,
+    });
+  }
 }
 
-async function processWhatsappWebhook(req, eventId) {
+async function processWhatsappWebhook(req, eventId, parsed) {
   const io = req.app.get('io');
-  const parsed = twilioService.parseIncoming(req.body);
 
   const lead = await createLeadIfMissing({
     channel: 'whatsapp',
@@ -109,7 +112,8 @@ async function processWhatsappWebhook(req, eventId) {
 
   if (!guard.ok) {
     await WebhookEvent.markFailed(eventId, `Dropped inbound due to ${guard.reason}`);
-    await handlePausedLead(io, lead, 'whatsapp', `Inbound message blocked: ${guard.reason}`);
+    const shouldEscalate = !['duplicate', 'rate_limited', 'opt_out', 'opt_in_ack'].includes(guard.reason);
+    await handlePausedLead(io, lead, 'whatsapp', `Inbound message blocked: ${guard.reason}`, shouldEscalate);
     return;
   }
 
@@ -188,7 +192,8 @@ async function processEmailWebhook(req, eventId) {
 
   if (!guard.ok) {
     await WebhookEvent.markFailed(eventId, `Dropped inbound due to ${guard.reason}`);
-    await handlePausedLead(io, lead, 'email', `Inbound email blocked: ${guard.reason}`);
+    const shouldEscalate = !['duplicate', 'rate_limited', 'opt_out', 'opt_in_ack'].includes(guard.reason);
+    await handlePausedLead(io, lead, 'email', `Inbound email blocked: ${guard.reason}`, shouldEscalate);
     return;
   }
 
@@ -227,6 +232,22 @@ router.post('/webhook/whatsapp', async (req, res) => {
     return res.status(403).send('Invalid Twilio signature');
   }
 
+  const parsed = twilioService.parseIncoming(req.body || {});
+  const eventKey = parsed.twilioSid || `${parsed.from || 'unknown'}:${parsed.messageType}:${parsed.message || ''}`.slice(0, 120);
+  const reservation = await IdempotencyKey.reserve('webhook:whatsapp', eventKey, eventKey, 72);
+
+  if (!reservation.created && reservation.row?.status !== 'failed') {
+    logger.info('duplicate_whatsapp_webhook_ignored', {
+      requestId: req.requestId,
+      eventKey,
+      from: parsed.from,
+    });
+    return res.type('text/xml').send('<Response></Response>');
+  }
+  if (!reservation.created && reservation.row?.status === 'failed') {
+    await IdempotencyKey.markProcessing(reservation.row.id);
+  }
+
   const event = await WebhookEvent.create({
     channel: 'whatsapp',
     eventType: 'incoming',
@@ -237,9 +258,11 @@ router.post('/webhook/whatsapp', async (req, res) => {
 
   setImmediate(async () => {
     try {
-      await processWhatsappWebhook(req, event.id);
+      await processWhatsappWebhook(req, event.id, parsed);
+      await IdempotencyKey.complete(reservation.row.id, 200, JSON.stringify({ ok: true }));
     } catch (error) {
       await WebhookEvent.markFailed(event.id, error.message);
+      await IdempotencyKey.fail(reservation.row.id, 500, JSON.stringify({ error: error.message }));
       console.error('async whatsapp processing failed', error);
     }
   });
@@ -248,6 +271,23 @@ router.post('/webhook/whatsapp', async (req, res) => {
 });
 
 router.post('/webhook/email', async (req, res) => {
+  const parsed = emailService.parseInbound(req.body || {});
+  const eventKeySource = req.body?.message_id || req.body?.MessageSid || `${parsed.from || 'unknown'}:${parsed.subject || ''}:${parsed.cleanText || ''}`;
+  const eventKey = String(eventKeySource).slice(0, 220);
+  const reservation = await IdempotencyKey.reserve('webhook:email', eventKey, eventKey, 72);
+
+  if (!reservation.created && reservation.row?.status !== 'failed') {
+    logger.info('duplicate_email_webhook_ignored', {
+      requestId: req.requestId,
+      eventKey,
+      from: parsed.from,
+    });
+    return res.status(200).json({ received: true, duplicate: true });
+  }
+  if (!reservation.created && reservation.row?.status === 'failed') {
+    await IdempotencyKey.markProcessing(reservation.row.id);
+  }
+
   const event = await WebhookEvent.create({
     channel: 'email',
     eventType: 'incoming',
@@ -259,8 +299,10 @@ router.post('/webhook/email', async (req, res) => {
   setImmediate(async () => {
     try {
       await processEmailWebhook(req, event.id);
+      await IdempotencyKey.complete(reservation.row.id, 200, JSON.stringify({ ok: true }));
     } catch (error) {
       await WebhookEvent.markFailed(event.id, error.message);
+      await IdempotencyKey.fail(reservation.row.id, 500, JSON.stringify({ error: error.message }));
       console.error('async email processing failed', error);
     }
   });

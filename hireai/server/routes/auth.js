@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const { env } = require('../config/env');
+const { asString, asEmail } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -13,8 +15,8 @@ function signToken(user) {
       email: user.email,
       agencyName: user.agencyName,
     },
-    process.env.JWT_SECRET || 'hireai-dev-secret',
-    { expiresIn: '7d' }
+    env.jwtSecret,
+    { expiresIn: env.jwtAccessTtl }
   );
 }
 
@@ -35,11 +37,9 @@ function sanitizeUser(user) {
 
 router.post('/auth/register', async (req, res) => {
   try {
-    const { agencyName, email, password } = req.body;
-
-    if (!agencyName || !email || !password) {
-      return res.status(400).json({ error: 'agencyName, email and password are required' });
-    }
+    const agencyName = asString(req.body?.agencyName, 'agencyName', { required: true, min: 2, max: 120 });
+    const email = asEmail(req.body?.email, 'email', { required: true });
+    const password = asString(req.body?.password, 'password', { required: true, min: 8, max: 128 });
 
     const exists = await User.findByEmail(email.toLowerCase());
     if (exists) {
@@ -60,6 +60,9 @@ router.post('/auth/register', async (req, res) => {
       user: sanitizeUser(user),
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('register failed', error);
     return res.status(500).json({ error: 'Failed to register user' });
   }
@@ -67,11 +70,8 @@ router.post('/auth/register', async (req, res) => {
 
 router.post('/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'email and password are required' });
-    }
+    const email = asEmail(req.body?.email, 'email', { required: true });
+    const password = asString(req.body?.password, 'password', { required: true, min: 1, max: 128 });
 
     const user = await User.findByEmail(email.toLowerCase());
     if (!user) {
@@ -85,6 +85,9 @@ router.post('/auth/login', async (req, res) => {
 
     return res.json({ token: signToken(user), user: sanitizeUser(user) });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('login failed', error);
     return res.status(500).json({ error: 'Failed to login' });
   }
@@ -109,12 +112,30 @@ router.get('/settings', requireAuth, async (req, res) => {
 });
 
 router.patch('/settings', requireAuth, async (req, res) => {
-  const user = await User.updateSettings(req.user.id, req.body || {});
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
+  try {
+    const updates = {
+      agencyName: asString(req.body?.agencyName, 'agencyName', { max: 120 }),
+      twilioKey: asString(req.body?.twilioKey, 'twilioKey', { max: 500 }),
+      gmailConfig: asString(req.body?.gmailConfig, 'gmailConfig', { max: 1000 }),
+      agentPersonality: asString(req.body?.agentPersonality, 'agentPersonality', { max: 2000 }),
+      logoUrl: asString(req.body?.logoUrl, 'logoUrl', { max: 1024 }),
+      calendarConfig: asString(req.body?.calendarConfig, 'calendarConfig', { max: 4000 }),
+      listingsData: asString(req.body?.listingsData, 'listingsData', { max: 50000 }),
+    };
 
-  return res.json({ settings: sanitizeUser(user) });
+    const user = await User.updateSettings(req.user.id, updates);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ settings: sanitizeUser(user) });
+  } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('settings update failed', error);
+    return res.status(500).json({ error: 'Failed to update settings' });
+  }
 });
 
 module.exports = router;

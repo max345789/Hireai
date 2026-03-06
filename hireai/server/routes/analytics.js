@@ -3,8 +3,20 @@ const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
 const { getDb } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { safeLimit } = require('../utils/validate');
 
 const router = express.Router();
+
+function parseIso(value, label) {
+  if (!value) return null;
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) {
+    const error = new Error(`${label} must be a valid ISO date`);
+    error.status = 400;
+    throw error;
+  }
+  return parsed.toISOString();
+}
 
 router.get('/analytics/today', requireAuth, async (_req, res) => {
   try {
@@ -26,8 +38,11 @@ router.get('/analytics/today', requireAuth, async (_req, res) => {
 router.get('/analytics/range', requireAuth, async (req, res) => {
   try {
     const db = await getDb();
-    const from = req.query.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const to = req.query.to || new Date().toISOString();
+    const from = parseIso(req.query.from, 'from') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const to = parseIso(req.query.to, 'to') || new Date().toISOString();
+    if (new Date(from).getTime() > new Date(to).getTime()) {
+      return res.status(400).json({ error: 'from must be before to' });
+    }
 
     const [msgStats, leadStats, bookingStats, hourlyActivity, channelBreakdown, dailyLeads, avgResponse] = await Promise.all([
       db.get(
@@ -95,7 +110,8 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
 router.get('/analytics/followups', requireAuth, async (_req, res) => {
   try {
     const db = await getDb();
-    const log = await db.all(`SELECT * FROM followup_log ORDER BY sentAt DESC LIMIT 100`);
+    const limit = safeLimit(_req.query.limit, 100, 300);
+    const log = await db.all(`SELECT * FROM followup_log ORDER BY sentAt DESC LIMIT ?`, [limit]);
     const stats = await db.get(
       `SELECT COUNT(*) AS total, COUNT(DISTINCT leadId) AS uniqueLeads,
               SUM(CASE WHEN sequenceStep=1 THEN 1 ELSE 0 END) AS step1,

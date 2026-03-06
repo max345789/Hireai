@@ -24,7 +24,8 @@
 ### Set BASE_URL in Railway
 After Vercel deploys, go back to Railway and set:
 ```
-BASE_URL=https://your-vercel-url.vercel.app
+BASE_URL=https://your-railway-url.up.railway.app
+CORS_ORIGINS=https://your-vercel-url.vercel.app
 ```
 
 ---
@@ -76,6 +77,8 @@ docker-compose logs -f server
 |---|---|---|
 | `ANTHROPIC_API_KEY` | ✅ | Claude AI key |
 | `JWT_SECRET` | ✅ | Random 32+ char string |
+| `CORS_ORIGINS` | ✅ | Comma-separated frontend origins |
+| `JWT_ACCESS_TTL` | Optional | Access token TTL (default `7d`) |
 | `BASE_URL` | ✅ | Your domain (no trailing slash) |
 | `TWILIO_ACCOUNT_SID` | Optional | For WhatsApp |
 | `TWILIO_AUTH_TOKEN` | Optional | For WhatsApp |

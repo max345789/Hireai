@@ -139,6 +139,11 @@ class Lead {
     return db.all('SELECT * FROM blocked_contacts ORDER BY createdAt DESC, id DESC');
   }
 
+  static async unblockPhone(phone) {
+    const db = await getDb();
+    await db.run('DELETE FROM blocked_contacts WHERE phone = ?', [phone]);
+  }
+
   static async isBlocked(phone) {
     const db = await getDb();
     if (!phone) return false;

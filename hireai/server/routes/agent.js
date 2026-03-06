@@ -7,6 +7,8 @@ const { requireAuth } = require('../middleware/auth');
 const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const { validateInbound } = require('../services/channelGuard');
+const { idempotency } = require('../middleware/idempotency');
+const { asString, asEnum, asInteger, asEmail, asPhone, safeLimit } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -97,12 +99,21 @@ async function processIncoming({ io, message, channel, lead }) {
   });
 
   if (!guard.ok) {
+    const reasonText =
+      guard.reason === 'opt_out'
+        ? `${lead.name} opted out of automated messages`
+        : guard.reason === 'opt_in_ack'
+          ? `${lead.name} opted back in to messaging`
+          : `Inbound blocked (${guard.reason}) for ${lead.name}`;
+
+    const isActionable = !['duplicate', 'rate_limited', 'opt_out', 'opt_in_ack'].includes(guard.reason);
+
     await emitAgentAction(io, {
       leadId: lead.id,
       leadName: lead.name,
-      action: 'needs_human',
+      action: isActionable ? 'needs_human' : 'replied',
       channel,
-      description: `Inbound blocked (${guard.reason}) for ${lead.name}`,
+      description: reasonText,
       sentByAI: false,
     });
 
@@ -174,14 +185,17 @@ async function processIncoming({ io, message, channel, lead }) {
   };
 }
 
-router.post('/agent/process', requireAuth, async (req, res) => {
+router.post('/agent/process', requireAuth, idempotency({ scope: (req) => `agent:process:${req.body?.leadId || req.body?.phone || 'new'}` }), async (req, res) => {
   try {
     const io = req.app.get('io');
-    const { leadId, message, channel = 'web', name, phone, email } = req.body || {};
-
-    if (!message) {
-      return res.status(400).json({ error: 'message is required' });
-    }
+    const leadId = asInteger(req.body?.leadId, 'leadId', { min: 1, fallback: null });
+    const message = asString(req.body?.message, 'message', { required: true, min: 1, max: 5000 });
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+      fallback: 'web',
+    });
+    const name = asString(req.body?.name, 'name', { max: 150 });
+    const phone = asPhone(req.body?.phone, 'phone');
+    const email = asEmail(req.body?.email, 'email');
 
     const lead = await findOrCreateLead({
       leadId,
@@ -201,6 +215,9 @@ router.post('/agent/process', requireAuth, async (req, res) => {
 
     return res.json(output);
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('agent process failed', error);
     return res.status(500).json({ error: 'Agent processing failed' });
   }
@@ -209,7 +226,8 @@ router.post('/agent/process', requireAuth, async (req, res) => {
 router.post('/agent/takeover/:leadId', requireAuth, async (req, res) => {
   try {
     const io = req.app.get('io');
-    const lead = await Lead.setAiPaused(req.params.leadId, true);
+    const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
+    const lead = await Lead.setAiPaused(leadId, true);
     if (!lead) {
       return res.status(404).json({ error: 'Lead not found' });
     }
@@ -227,6 +245,9 @@ router.post('/agent/takeover/:leadId', requireAuth, async (req, res) => {
 
     return res.json({ lead, activity });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('takeover failed', error);
     return res.status(500).json({ error: 'Failed to set takeover' });
   }
@@ -235,7 +256,8 @@ router.post('/agent/takeover/:leadId', requireAuth, async (req, res) => {
 router.post('/agent/handback/:leadId', requireAuth, async (req, res) => {
   try {
     const io = req.app.get('io');
-    const lead = await Lead.setAiPaused(req.params.leadId, false);
+    const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
+    const lead = await Lead.setAiPaused(leadId, false);
 
     if (!lead) {
       return res.status(404).json({ error: 'Lead not found' });
@@ -281,6 +303,9 @@ router.post('/agent/handback/:leadId', requireAuth, async (req, res) => {
 
     return res.json({ lead, outMessage, activity, sendResult });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('handback failed', error);
     return res.status(500).json({ error: 'Failed to hand back to AI' });
   }
@@ -297,21 +322,17 @@ router.get('/agent/status', requireAuth, async (_req, res) => {
   });
 });
 
-router.post('/simulate/message', requireAuth, async (req, res) => {
+router.post('/simulate/message', requireAuth, idempotency({ scope: (req) => `simulate:${req.body?.phone || req.body?.leadId || 'anon'}` }), async (req, res) => {
   try {
     const io = req.app.get('io');
-    const {
-      leadId,
-      name,
-      phone,
-      email,
-      message,
-      channel = 'whatsapp',
-    } = req.body || {};
-
-    if (!message) {
-      return res.status(400).json({ error: 'message is required' });
-    }
+    const leadId = asInteger(req.body?.leadId, 'leadId', { min: 1, fallback: null });
+    const name = asString(req.body?.name, 'name', { max: 150 });
+    const phone = asPhone(req.body?.phone, 'phone');
+    const email = asEmail(req.body?.email, 'email');
+    const message = asString(req.body?.message, 'message', { required: true, min: 1, max: 5000 });
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+      fallback: 'whatsapp',
+    });
 
     const lead = await findOrCreateLead({
       leadId,
@@ -334,13 +355,16 @@ router.post('/simulate/message', requireAuth, async (req, res) => {
       ...output,
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('simulation failed', error);
     return res.status(500).json({ error: 'Simulation failed' });
   }
 });
 
 router.get('/activity-log', requireAuth, async (req, res) => {
-  const limit = Number(req.query.limit || 100);
+  const limit = safeLimit(req.query.limit, 100, 300);
   const items = await ActivityLog.recent(limit);
   return res.json({ items });
 });

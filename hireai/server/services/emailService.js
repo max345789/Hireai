@@ -73,7 +73,22 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
   const transport = getTransport();
   const agencyName = options.agencyName || 'HireAI Realty';
   const agencyLogo = options.agencyLogo || null;
+  const recipient = String(to || '').trim().toLowerCase();
+  const emailSubject = String(subject || 'Property Inquiry').trim().slice(0, 180);
+  const plainText = String(textBody || htmlBody || '').trim();
   const html = buildTemplate(agencyName, agencyLogo, htmlBody || textBody || '');
+
+  if (!recipient) {
+    return {
+      mocked: true,
+      success: false,
+      sid: null,
+      channel: 'email',
+      to: null,
+      subject: emailSubject,
+      error: 'Missing recipient email address',
+    };
+  }
 
   if (!transport) {
     return {
@@ -81,20 +96,20 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
       success: true,
       sid: null,
       channel: 'email',
-      to,
-      subject,
+      to: recipient,
+      subject: emailSubject,
       html,
-      text: textBody || htmlBody || '',
+      text: plainText,
     };
   }
 
   try {
     const info = await transport.sendMail({
       from: process.env.GMAIL_USER,
-      to,
-      subject,
+      to: recipient,
+      subject: emailSubject,
       html,
-      text: textBody || htmlBody || '',
+      text: plainText,
     });
 
     return {
@@ -102,8 +117,8 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
       success: true,
       sid: info.messageId,
       channel: 'email',
-      to,
-      subject,
+      to: recipient,
+      subject: emailSubject,
       raw: info,
     };
   } catch (error) {
@@ -112,8 +127,8 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
       success: false,
       sid: null,
       channel: 'email',
-      to,
-      subject,
+      to: recipient,
+      subject: emailSubject,
       error: error.message,
     };
   }

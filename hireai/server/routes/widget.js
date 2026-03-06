@@ -5,6 +5,8 @@ const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
 const { processMessage } = require('../services/agentBrain');
 const { validateInbound } = require('../services/channelGuard');
+const { idempotency } = require('../middleware/idempotency');
+const { asString, asInteger } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -27,13 +29,13 @@ async function resolveSession(sessionId) {
 router.post('/widget/session', async (req, res) => {
   try {
     const io = req.app.get('io');
-    const {
-      sessionId,
-      agencyId = process.env.AGENCY_ID || 'agency_001',
-      agencyName = 'Dream Properties',
-      greeting = 'Hi! Looking for your dream property? I can help 24/7 🏠',
-      visitorName = 'Website Visitor',
-    } = req.body || {};
+    const sessionId = asString(req.body?.sessionId, 'sessionId', { max: 120 });
+    const agencyId = asString(req.body?.agencyId, 'agencyId', { max: 120 }) || process.env.AGENCY_ID || 'agency_001';
+    const agencyName = asString(req.body?.agencyName, 'agencyName', { max: 120 }) || 'Dream Properties';
+    const greeting =
+      asString(req.body?.greeting, 'greeting', { max: 600 }) ||
+      'Hi! Looking for your dream property? I can help 24/7 🏠';
+    const visitorName = asString(req.body?.visitorName, 'visitorName', { max: 120 }) || 'Website Visitor';
 
     if (sessionId) {
       const existing = await resolveSession(sessionId);
@@ -100,19 +102,20 @@ router.post('/widget/session', async (req, res) => {
       messages: [welcomeMessage],
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('widget session failed', error);
     return res.status(500).json({ error: 'Failed to create widget session' });
   }
 });
 
-router.post('/widget/message', async (req, res) => {
+router.post('/widget/message', idempotency({ scope: (req) => `widget:message:${req.body?.sessionId || 'missing'}` }), async (req, res) => {
   try {
     const io = req.app.get('io');
-    const { sessionId, message, visitorName } = req.body || {};
-
-    if (!sessionId || !message) {
-      return res.status(400).json({ error: 'sessionId and message are required' });
-    }
+    const sessionId = asString(req.body?.sessionId, 'sessionId', { required: true, max: 120 });
+    const message = asString(req.body?.message, 'message', { required: true, min: 1, max: 5000 });
+    const visitorName = asString(req.body?.visitorName, 'visitorName', { max: 120 });
 
     const resolved = await resolveSession(sessionId);
     if (!resolved) {
@@ -128,7 +131,10 @@ router.post('/widget/message', async (req, res) => {
 
     const guard = await validateInbound({ lead, phone: null, content: message });
     if (!guard.ok) {
-      return res.status(429).json({ error: `Message blocked: ${guard.reason}` });
+      const status =
+        guard.reason === 'duplicate' ? 409 :
+        guard.reason === 'rate_limited' ? 429 : 200;
+      return res.status(status).json({ blocked: true, reason: guard.reason });
     }
 
     const inMessage = await Message.create({
@@ -179,6 +185,9 @@ router.post('/widget/message', async (req, res) => {
       lead: result.lead,
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('widget message failed', error);
     return res.status(500).json({ error: 'Failed to process widget message' });
   }
@@ -186,8 +195,8 @@ router.post('/widget/message', async (req, res) => {
 
 router.get('/widget/messages/:sid', async (req, res) => {
   try {
-    const sessionId = req.params.sid;
-    const sinceId = Number(req.query.since || 0);
+    const sessionId = asString(req.params.sid, 'sid', { required: true, min: 8, max: 120 });
+    const sinceId = asInteger(req.query.since, 'since', { min: 0, fallback: 0 });
 
     const resolved = await resolveSession(sessionId);
     if (!resolved) {
@@ -206,6 +215,9 @@ router.get('/widget/messages/:sid', async (req, res) => {
       messages,
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('widget messages failed', error);
     return res.status(500).json({ error: 'Failed to load widget messages' });
   }

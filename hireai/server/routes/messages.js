@@ -5,6 +5,8 @@ const ActivityLog = require('../models/ActivityLog');
 const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
 const { requireAuth } = require('../middleware/auth');
+const { idempotency } = require('../middleware/idempotency');
+const { asInteger, asString, asEnum, safeLimit } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -28,23 +30,32 @@ async function sendOutbound(lead, channel, content) {
 }
 
 router.get('/messages', requireAuth, async (req, res) => {
-  const limit = Number(req.query.limit || 80);
+  const limit = safeLimit(req.query.limit, 80, 200);
   const messages = await Message.recentFeed(limit);
   return res.json({ messages });
 });
 
 router.get('/messages/:leadId', requireAuth, async (req, res) => {
-  const sinceId = Number(req.query.since || 0);
-  const messages = await Message.getByLeadId(req.params.leadId, { sinceId });
-  return res.json({ messages });
+  try {
+    const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
+    const sinceId = asInteger(req.query.since, 'since', { min: 0, fallback: 0 });
+    const messages = await Message.getByLeadId(leadId, { sinceId });
+    return res.json({ messages });
+  } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    return res.status(500).json({ error: 'Failed to load messages' });
+  }
 });
 
-router.post('/messages/send', requireAuth, async (req, res) => {
+router.post('/messages/send', requireAuth, idempotency({ scope: (req) => `messages:send:${req.body?.leadId || 'unknown'}` }), async (req, res) => {
   try {
-    const { leadId, content, channel } = req.body;
-    if (!leadId || !content) {
-      return res.status(400).json({ error: 'leadId and content are required' });
-    }
+    const leadId = asInteger(req.body?.leadId, 'leadId', { required: true, min: 1 });
+    const content = asString(req.body?.content, 'content', { required: true, min: 1, max: 5000 });
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+      fallback: null,
+    });
 
     const lead = await Lead.getById(leadId);
     if (!lead) {
@@ -103,6 +114,9 @@ router.post('/messages/send', requireAuth, async (req, res) => {
 
     return res.status(201).json({ message: outMessage, activity, sendResult });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('manual send failed', error);
     return res.status(500).json({ error: 'Failed to send message' });
   }

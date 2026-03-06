@@ -1,4 +1,18 @@
-const API_PREFIX = '/api';
+const RAW_API_BASE = (import.meta.env.VITE_API_URL || '').trim();
+const API_BASE = RAW_API_BASE.replace(/\/+$/, '');
+
+function buildUrl(path) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (!API_BASE) {
+    return `/api${normalizedPath}`;
+  }
+
+  if (API_BASE.endsWith('/api')) {
+    return `${API_BASE}${normalizedPath}`;
+  }
+
+  return `${API_BASE}/api${normalizedPath}`;
+}
 
 export function getToken() {
   return localStorage.getItem('hireai_token');
@@ -15,7 +29,7 @@ export function clearToken() {
 export async function apiRequest(path, options = {}) {
   const token = getToken();
 
-  const response = await fetch(`${API_PREFIX}${path}`, {
+  const response = await fetch(buildUrl(path), {
     ...options,
     headers: {
       'Content-Type': 'application/json',

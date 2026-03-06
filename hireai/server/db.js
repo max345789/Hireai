@@ -127,6 +127,19 @@ async function initDb() {
       FOREIGN KEY (leadId) REFERENCES leads (id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scope TEXT NOT NULL,
+      key TEXT NOT NULL,
+      requestHash TEXT NOT NULL,
+      status TEXT DEFAULT 'processing',
+      statusCode INTEGER,
+      responseBody TEXT,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      expiresAt TEXT,
+      UNIQUE(scope, key)
+    );
+
     CREATE TABLE IF NOT EXISTS followup_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       leadId INTEGER NOT NULL,
@@ -157,6 +170,8 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_activity_log_timestamp ON activity_log (timestamp DESC, id DESC);
     CREATE INDEX IF NOT EXISTS idx_blocked_phone ON blocked_contacts (phone);
     CREATE INDEX IF NOT EXISTS idx_widget_sessions_session ON widget_sessions (sessionId);
+    CREATE INDEX IF NOT EXISTS idx_idempotency_scope_key ON idempotency_keys (scope, key);
+    CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_keys (expiresAt);
 
     CREATE TRIGGER IF NOT EXISTS leads_updated_at
     AFTER UPDATE ON leads

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { env } = require('../config/env');
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -9,7 +10,7 @@ function requireAuth(req, res, next) {
   const token = header.replace('Bearer ', '').trim();
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hireai-dev-secret');
+    const decoded = jwt.verify(token, env.jwtSecret);
     req.user = decoded;
     return next();
   } catch (_error) {

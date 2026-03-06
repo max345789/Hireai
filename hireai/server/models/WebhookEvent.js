@@ -1,4 +1,19 @@
 const { getDb } = require('../db');
+const { env } = require('../config/env');
+const { sanitizeObject } = require('../services/logger');
+
+function preparePayload(payload) {
+  if (!payload) return null;
+
+  const value = env.sanitizeWebhookPayloads ? sanitizeObject(payload) : payload;
+  const serialized = JSON.stringify(value);
+
+  if (serialized.length <= env.webhookPayloadMaxChars) {
+    return serialized;
+  }
+
+  return `${serialized.slice(0, env.webhookPayloadMaxChars)}...[truncated]`;
+}
 
 class WebhookEvent {
   static async create({ channel, eventType, payload, status = 'received', error = null }) {
@@ -9,7 +24,7 @@ class WebhookEvent {
       [
         channel,
         eventType || null,
-        payload ? JSON.stringify(payload) : null,
+        preparePayload(payload),
         status,
         error,
       ]

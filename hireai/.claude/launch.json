@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hireai-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/sarath/Documents/New project/hireai/server",
+      "port": 3001
+    },
+    {
+      "name": "hireai-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/sarath/Documents/New project/hireai/client",
+      "port": 3000
+    }
+  ]
+}

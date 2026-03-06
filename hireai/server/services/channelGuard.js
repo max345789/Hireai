@@ -2,6 +2,8 @@ const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 
 const PROFANITY_PATTERN = /\b(fuck|shit|bitch|asshole|bastard|idiot|moron|stupid|damn)\b/i;
+const OPT_OUT_PATTERN = /^\s*(stop|unsubscribe|cancel|end|quit)\b/i;
+const OPT_IN_PATTERN = /^\s*(start|unstop|subscribe)\b/i;
 
 function parseTimestamp(raw) {
   if (!raw) return null;
@@ -41,6 +43,17 @@ function hasProfanity(content) {
 
 async function validateInbound({ lead, phone, content }) {
   const normalizedPhone = phone ? String(phone).trim() : null;
+  const text = String(content || '');
+
+  if (normalizedPhone && OPT_IN_PATTERN.test(text)) {
+    await Lead.unblockPhone(normalizedPhone);
+    return { ok: false, reason: 'opt_in_ack' };
+  }
+
+  if (normalizedPhone && OPT_OUT_PATTERN.test(text)) {
+    await Lead.blockPhone(normalizedPhone, 'Client opted out');
+    return { ok: false, reason: 'opt_out' };
+  }
 
   if (normalizedPhone && (await Lead.isBlocked(normalizedPhone))) {
     return { ok: false, reason: 'blocked' };
@@ -54,7 +67,7 @@ async function validateInbound({ lead, phone, content }) {
     return { ok: false, reason: 'duplicate' };
   }
 
-  if (hasProfanity(content)) {
+  if (hasProfanity(text)) {
     return { ok: true, profanity: true };
   }
 

@@ -10,13 +10,16 @@ async function run() {
   await db.exec(`
     DELETE FROM widget_sessions;
     DELETE FROM webhook_events;
+    DELETE FROM idempotency_keys;
     DELETE FROM blocked_contacts;
+    DELETE FROM followup_log;
+    DELETE FROM subscriptions;
     DELETE FROM activity_log;
     DELETE FROM bookings;
     DELETE FROM messages;
     DELETE FROM leads;
     DELETE FROM users;
-    DELETE FROM sqlite_sequence WHERE name IN ('widget_sessions', 'webhook_events', 'blocked_contacts', 'activity_log', 'bookings', 'messages', 'leads', 'users');
+    DELETE FROM sqlite_sequence WHERE name IN ('widget_sessions', 'webhook_events', 'idempotency_keys', 'blocked_contacts', 'followup_log', 'subscriptions', 'activity_log', 'bookings', 'messages', 'leads', 'users');
   `);
 
   const password = await bcrypt.hash('password123', 10);

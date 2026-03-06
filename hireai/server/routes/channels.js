@@ -5,6 +5,7 @@ const Message = require('../models/Message');
 const WidgetSession = require('../models/WidgetSession');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
+const { asString, asEmail, asEnum } = require('../utils/validate');
 
 const router = express.Router();
 
@@ -57,43 +58,58 @@ router.get('/channels/status', requireAuth, async (_req, res) => {
 });
 
 router.post('/channels/test/:channel', requireAuth, async (req, res) => {
-  const { channel } = req.params;
-  const { to } = req.body || {};
+  try {
+    const channel = asEnum(req.params.channel, 'channel', ['whatsapp', 'email', 'web'], { required: true });
+    const toRaw = asString(req.body?.to, 'to', { max: 320 });
 
-  if (channel === 'whatsapp') {
-    if (!to) return res.status(400).json({ error: 'to is required' });
-    const result = await twilioService.sendWhatsApp(to, 'HireAI test message: WhatsApp integration is active.');
-    return res.json({ channel, result });
+    if (channel === 'whatsapp') {
+      const to = asString(toRaw, 'to', { required: true, min: 7, max: 32 });
+      const result = await twilioService.sendWhatsApp(to, 'HireAI test message: WhatsApp integration is active.');
+      return res.json({ channel, result });
+    }
+
+    if (channel === 'email') {
+      const to = asEmail(toRaw, 'to', { required: true });
+      const user = await User.firstUser();
+      const result = await emailService.send(
+        to,
+        'HireAI Test Email',
+        'This is a test email from HireAI. Your email channel is connected.',
+        'This is a test email from HireAI. Your email channel is connected.',
+        {
+          agencyName: user?.agencyName || 'HireAI Realty',
+          agencyLogo: user?.logoUrl || null,
+        }
+      );
+      return res.json({ channel, result });
+    }
+
+    if (channel === 'web') {
+      return res.json({
+        channel,
+        result: { success: true, mocked: true, message: 'Web widget channel is active by default.' },
+      });
+    }
+
+    return res.status(400).json({ error: 'Unsupported channel' });
+  } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    return res.status(500).json({ error: 'Failed to run channel test' });
   }
-
-  if (channel === 'email') {
-    if (!to) return res.status(400).json({ error: 'to is required' });
-    const user = await User.firstUser();
-    const result = await emailService.send(
-      to,
-      'HireAI Test Email',
-      'This is a test email from HireAI. Your email channel is connected.',
-      'This is a test email from HireAI. Your email channel is connected.',
-      {
-        agencyName: user?.agencyName || 'HireAI Realty',
-        agencyLogo: user?.logoUrl || null,
-      }
-    );
-    return res.json({ channel, result });
-  }
-
-  if (channel === 'web') {
-    return res.json({
-      channel,
-      result: { success: true, mocked: true, message: 'Web widget channel is active by default.' },
-    });
-  }
-
-  return res.status(400).json({ error: 'Unsupported channel' });
 });
 
 router.post('/channels/disconnect/:channel', requireAuth, async (req, res) => {
-  const { channel } = req.params;
+  let channel;
+  try {
+    channel = asEnum(req.params.channel, 'channel', ['whatsapp', 'email', 'web'], { required: true });
+  } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    return res.status(500).json({ error: 'Invalid channel' });
+  }
 
   if (channel === 'whatsapp') {
     const updated = await User.updateSettings(req.user.id, { twilioKey: null });
