@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Dark Theme (default) ─────────────────────────────── */
+:root,
+[data-theme='dark'] {
+  --bg-rgb: 10, 10, 15;
+  --card-rgb: 19, 19, 26;
+  --surface-rgb: 28, 28, 38;
+  --textSoft-rgb: 165, 166, 179;
+  --accent-rgb: 108, 99, 255;
+  --text-primary: #f2f3ff;
+  --body-bg: radial-gradient(circle at 10% 10%, rgba(108, 99, 255, 0.16), transparent 42%),
+    radial-gradient(circle at 90% 90%, rgba(0, 181, 255, 0.1), transparent 40%),
+    rgb(var(--bg-rgb));
+}
+
+/* ─── Light Theme ───────────────────────────────────────── */
+[data-theme='light'] {
+  --bg-rgb: 244, 245, 250;
+  --card-rgb: 255, 255, 255;
+  --surface-rgb: 234, 236, 246;
+  --textSoft-rgb: 100, 105, 135;
+  --accent-rgb: 91, 82, 232;
+  --text-primary: #1a1a2e;
+  --body-bg: radial-gradient(circle at 10% 10%, rgba(91, 82, 232, 0.08), transparent 42%),
+    radial-gradient(circle at 90% 90%, rgba(0, 150, 220, 0.06), transparent 40%),
+    rgb(var(--bg-rgb));
+}
+
+/* ─── Light mode overrides for hardcoded Tailwind white ── */
+[data-theme='light'] .text-white {
+  color: var(--text-primary) !important;
+}
+[data-theme='light'] .text-slate-200 {
+  color: #2d2d50 !important;
+}
+[data-theme='light'] .text-slate-400 {
+  color: #5a5d7a !important;
+}
+
+/* ─── Alert text visible in light mode ─────────────────── */
+[data-theme='light'] .text-emerald-200 {
+  color: #166534 !important;
+}
+[data-theme='light'] .text-amber-200 {
+  color: #92400e !important;
+}
+[data-theme='light'] .text-rose-200 {
+  color: #9f1239 !important;
+}
+[data-theme='light'] .text-emerald-300 {
+  color: #15803d !important;
+}
+[data-theme='light'] .text-violet-300 {
+  color: #6d28d9 !important;
+}
+[data-theme='light'] .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+[data-theme='light'] .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+[data-theme='light'] .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+[data-theme='light'] .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+[data-theme='light'] .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(108, 99, 255, 0.5) rgba(255, 255, 255, 0.05);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: var(--body-bg);
+  color: var(--text-primary);
+  transition: background 0.3s ease, color 0.25s ease;
+}
+
+::selection {
+  background: rgba(108, 99, 255, 0.45);
+}
+
+@keyframes slideInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-bottom {
+  animation: slideInBottom 280ms ease-out;
+}
+
+.slide-in-top {
+  animation: slideInTop 280ms ease-out;
+}

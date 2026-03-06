@@ -1,0 +1,115 @@
+const express = require('express');
+const twilioService = require('../services/twilioService');
+const emailService = require('../services/emailService');
+const Message = require('../models/Message');
+const WidgetSession = require('../models/WidgetSession');
+const User = require('../models/User');
+const { requireAuth } = require('../middleware/auth');
+
+const router = express.Router();
+
+function formatAgo(timestamp) {
+  if (!timestamp) return 'never';
+  const raw = String(timestamp);
+  const date = raw.includes('T')
+    ? new Date(raw)
+    : new Date(raw.replace(' ', 'T') + 'Z');
+  if (Number.isNaN(date.getTime())) return 'unknown';
+
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  return `${Math.floor(diffHours / 24)} day ago`;
+}
+
+async function getLastChannelMessage(channel) {
+  const items = await Message.recentFeed(400);
+  return items.find((item) => (channel === 'web' ? item.channel === 'web' || item.channel === 'webchat' : item.channel === channel));
+}
+
+router.get('/channels/status', requireAuth, async (_req, res) => {
+  const user = await User.firstUser();
+  const webActive = await WidgetSession.countActive();
+  const webTotal = await WidgetSession.totalCount();
+
+  const lastWhatsapp = await getLastChannelMessage('whatsapp');
+  const lastEmail = await getLastChannelMessage('email');
+
+  res.json({
+    whatsapp: {
+      configured: twilioService.isConfigured() || Boolean(user?.twilioKey),
+      number: process.env.TWILIO_WHATSAPP_NUMBER || user?.twilioKey || null,
+      lastMessage: lastWhatsapp ? formatAgo(lastWhatsapp.timestamp) : 'never',
+    },
+    email: {
+      configured: emailService.isConfigured() || Boolean(user?.gmailConfig),
+      address: process.env.GMAIL_USER || user?.email || null,
+      lastMessage: lastEmail ? formatAgo(lastEmail.timestamp) : 'never',
+    },
+    web: {
+      configured: true,
+      activeSessions: webActive,
+      totalChats: webTotal,
+    },
+  });
+});
+
+router.post('/channels/test/:channel', requireAuth, async (req, res) => {
+  const { channel } = req.params;
+  const { to } = req.body || {};
+
+  if (channel === 'whatsapp') {
+    if (!to) return res.status(400).json({ error: 'to is required' });
+    const result = await twilioService.sendWhatsApp(to, 'HireAI test message: WhatsApp integration is active.');
+    return res.json({ channel, result });
+  }
+
+  if (channel === 'email') {
+    if (!to) return res.status(400).json({ error: 'to is required' });
+    const user = await User.firstUser();
+    const result = await emailService.send(
+      to,
+      'HireAI Test Email',
+      'This is a test email from HireAI. Your email channel is connected.',
+      'This is a test email from HireAI. Your email channel is connected.',
+      {
+        agencyName: user?.agencyName || 'HireAI Realty',
+        agencyLogo: user?.logoUrl || null,
+      }
+    );
+    return res.json({ channel, result });
+  }
+
+  if (channel === 'web') {
+    return res.json({
+      channel,
+      result: { success: true, mocked: true, message: 'Web widget channel is active by default.' },
+    });
+  }
+
+  return res.status(400).json({ error: 'Unsupported channel' });
+});
+
+router.post('/channels/disconnect/:channel', requireAuth, async (req, res) => {
+  const { channel } = req.params;
+
+  if (channel === 'whatsapp') {
+    const updated = await User.updateSettings(req.user.id, { twilioKey: null });
+    return res.json({ success: true, settings: updated });
+  }
+
+  if (channel === 'email') {
+    const updated = await User.updateSettings(req.user.id, { gmailConfig: null });
+    return res.json({ success: true, settings: updated });
+  }
+
+  if (channel === 'web') {
+    return res.json({ success: true, note: 'Web widget cannot be disconnected globally.' });
+  }
+
+  return res.status(400).json({ error: 'Unsupported channel' });
+});
+
+module.exports = router;

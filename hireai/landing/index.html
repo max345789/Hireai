@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HireAI — Hire an AI Agent for Your Real Estate Business</title>
+  <meta name="description" content="HireAI replies to every inquiry in seconds, qualifies leads, books viewings, and works 24/7 — so you never miss another deal." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0A0A0F;
+      --card: #13131A;
+      --surface: #1C1C26;
+      --accent: #6C63FF;
+      --accent-light: rgba(108,99,255,0.15);
+      --text: #FFFFFF;
+      --text-soft: #A5A6B3;
+      --emerald: #34D399;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; line-height: 1.6; overflow-x: hidden; }
+    h1,h2,h3,h4 { font-family: 'Syne', sans-serif; line-height: 1.2; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; }
+
+    /* Layout */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .section { padding: 96px 0; }
+
+    /* Nav */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(10,10,15,0.85); backdrop-filter: blur(16px);
+      padding: 16px 0;
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { display: flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { font-size: 14px; color: var(--text-soft); transition: color 0.2s; }
+    .nav-links a:hover { color: #fff; }
+    .nav-cta { display: flex; gap: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; transition: all 0.2s; cursor: pointer; border: none; }
+    .btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--text-soft); }
+    .btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-lg { padding: 14px 28px; font-size: 16px; border-radius: 14px; }
+    .btn-white { background: #fff; color: #0A0A0F; }
+    .btn-white:hover { opacity: 0.9; }
+
+    /* Hero */
+    .hero { padding: 160px 0 96px; text-align: center; position: relative; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 100px;
+      border: 1px solid rgba(108,99,255,0.4); background: rgba(108,99,255,0.1);
+      font-size: 13px; color: #c4c0ff; margin-bottom: 32px;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hero h1 { font-size: clamp(40px, 6vw, 80px); font-weight: 800; max-width: 900px; margin: 0 auto 24px; }
+    .hero h1 .gradient { background: linear-gradient(135deg, #a78bfa, #6C63FF, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: clamp(16px, 2vw, 20px); color: var(--text-soft); max-width: 640px; margin: 0 auto 40px; }
+    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .hero-stats { margin-top: 64px; display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
+    .hero-stat { text-align: center; }
+    .hero-stat .number { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: var(--accent); }
+    .hero-stat .label { font-size: 13px; color: var(--text-soft); margin-top: 4px; }
+
+    /* Glow */
+    .glow-orb { position: absolute; border-radius: 50%; filter: blur(120px); pointer-events: none; }
+    .glow-1 { width: 600px; height: 600px; background: rgba(108,99,255,0.2); top: -20%; left: -10%; }
+    .glow-2 { width: 400px; height: 400px; background: rgba(56,189,248,0.12); bottom: -10%; right: -8%; }
+
+    /* Demo Widget Area */
+    .demo-section { padding: 0 0 80px; }
+    .demo-box {
+      max-width: 900px; margin: 0 auto;
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 24px; overflow: hidden;
+      background: var(--card);
+      box-shadow: 0 0 60px rgba(108,99,255,0.15);
+    }
+    .demo-bar { padding: 12px 20px; background: rgba(108,99,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px; }
+    .demo-dots { display: flex; gap: 6px; }
+    .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .demo-content { padding: 32px; }
+    .demo-chat { display: flex; flex-direction: column; gap: 12px; }
+    .chat-bubble { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+    .chat-in { background: var(--surface); color: var(--text); align-self: flex-start; border-radius: 4px 16px 16px 16px; }
+    .chat-out { background: var(--accent); color: #fff; align-self: flex-end; border-radius: 16px 4px 16px 16px; }
+    .chat-meta { font-size: 11px; color: var(--text-soft); margin-top: 4px; }
+    .chat-meta.right { text-align: right; }
+
+    /* Features */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 56px; }
+    .feature-card {
+      padding: 28px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--card);
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .feature-card:hover { border-color: rgba(108,99,255,0.4); transform: translateY(-4px); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px; }
+    .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: var(--text-soft); line-height: 1.7; }
+
+    /* How It Works */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; margin-top: 56px; }
+    .step { text-align: center; }
+    .step-num { width: 56px; height: 56px; border-radius: 50%; background: var(--accent-light); border: 2px solid rgba(108,99,255,0.5); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); margin: 0 auto 20px; }
+    .step h3 { font-size: 18px; margin-bottom: 10px; }
+    .step p { font-size: 14px; color: var(--text-soft); }
+    .step-connector { display: none; }
+
+    /* Pricing */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 56px; }
+    .pricing-card {
+      padding: 32px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--card);
+      position: relative;
+    }
+    .pricing-card.popular {
+      border-color: rgba(108,99,255,0.5);
+      background: linear-gradient(135deg, rgba(108,99,255,0.08) 0%, var(--card) 100%);
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff;
+      padding: 4px 16px; border-radius: 100px; font-size: 12px; font-weight: 700;
+    }
+    .price { margin: 16px 0 24px; }
+    .price .amount { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; }
+    .price .period { font-size: 16px; color: var(--text-soft); }
+    .price-features { list-style: none; space-y: 12px; margin-bottom: 28px; }
+    .price-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .price-features li:last-child { border-bottom: none; }
+    .check { color: var(--emerald); flex-shrink: 0; }
+
+    /* Testimonials */
+    .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 48px; }
+    .testimonial-card {
+      padding: 28px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: var(--card);
+    }
+    .stars { color: #FBBF24; font-size: 16px; margin-bottom: 16px; }
+    .testimonial-card p { font-size: 15px; line-height: 1.7; color: #d1d5db; margin-bottom: 20px; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .author-info .name { font-size: 14px; font-weight: 600; }
+    .author-info .role { font-size: 12px; color: var(--text-soft); }
+
+    /* FAQ */
+    .faq-list { max-width: 720px; margin: 48px auto 0; }
+    .faq-item { border-bottom: 1px solid rgba(255,255,255,0.06); padding: 20px 0; cursor: pointer; }
+    .faq-q { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; }
+    .faq-arrow { transition: transform 0.3s; color: var(--text-soft); }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+    .faq-a { font-size: 14px; color: var(--text-soft); line-height: 1.7; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s; }
+    .faq-item.open .faq-a { max-height: 200px; padding-top: 12px; }
+
+    /* CTA */
+    .cta-section { text-align: center; }
+    .cta-box {
+      max-width: 700px; margin: 0 auto;
+      padding: 64px 40px;
+      border-radius: 28px;
+      border: 1px solid rgba(108,99,255,0.4);
+      background: linear-gradient(135deg, rgba(108,99,255,0.12), rgba(56,189,248,0.06));
+    }
+    .cta-box h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
+    .cta-box p { font-size: 18px; color: var(--text-soft); margin-bottom: 36px; }
+
+    /* Footer */
+    footer { border-top: 1px solid rgba(255,255,255,0.06); padding: 40px 0; }
+    .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--text-soft); }
+    .footer-links a:hover { color: #fff; }
+    .footer-copy { font-size: 13px; color: var(--text-soft); }
+
+    /* Section headings */
+    .section-label { display: inline-block; padding: 4px 14px; border-radius: 100px; background: var(--accent-light); border: 1px solid rgba(108,99,255,0.3); color: #c4c0ff; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    .section-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; margin-bottom: 16px; }
+    .section-sub { font-size: 18px; color: var(--text-soft); max-width: 560px; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero { padding: 120px 0 64px; }
+      .section { padding: 64px 0; }
+      .hero-stats { gap: 32px; }
+      .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">
+      <span class="logo-dot"></span>
+      HireAI
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost">Sign in</a>
+      <a href="/register" class="btn btn-primary">Start Free Trial</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="glow-orb glow-1"></div>
+  <div class="glow-orb glow-2"></div>
+  <div class="container">
+    <div class="hero-badge">
+      <span></span>
+      AI-Powered Real Estate Assistant
+    </div>
+    <h1>Hire an <span class="gradient">AI Agent</span><br/>for Your Real Estate Business</h1>
+    <p class="hero-sub">
+      Replies to every WhatsApp, email and website inquiry in seconds.
+      Qualifies leads. Books viewings. Works 24/7 while you sleep.
+    </p>
+    <div class="hero-actions">
+      <a href="/register" class="btn btn-primary btn-lg">
+        🚀 Start Free — 14 Days Trial
+      </a>
+      <a href="#demo" class="btn btn-ghost btn-lg">
+        See Live Demo ↓
+      </a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="number">12s</div>
+        <div class="label">Average response time</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number">24/7</div>
+        <div class="label">Always online</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number">3x</div>
+        <div class="label">More leads qualified</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number">$0</div>
+        <div class="label">Staff overtime cost</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section" id="demo">
+  <div class="container">
+    <div class="demo-box">
+      <div class="demo-bar">
+        <div class="demo-dots">
+          <div class="demo-dot" style="background:#FF5F57"></div>
+          <div class="demo-dot" style="background:#FEBC2E"></div>
+          <div class="demo-dot" style="background:#28C840"></div>
+        </div>
+        <span style="font-size:13px;color:var(--text-soft);">Live AI Conversation Demo</span>
+        <span style="margin-left:auto;font-size:11px;padding:3px 10px;background:rgba(52,211,153,0.15);color:#34D399;border-radius:100px;border:1px solid rgba(52,211,153,0.3);">🟢 Agent Active</span>
+      </div>
+      <div class="demo-content">
+        <div class="demo-chat">
+          <div>
+            <div class="chat-bubble chat-in">Hi, I'm looking for a 3-bedroom apartment in Dubai Marina, budget around AED 2.5M</div>
+            <div class="chat-meta">Sarah M. • WhatsApp • just now</div>
+          </div>
+          <div style="align-self:flex-end;">
+            <div class="chat-bubble chat-out">Hi Sarah! Great choice — Dubai Marina is one of our most popular areas right now 🏙️<br><br>We have 3 properties that match your budget perfectly. Are you looking to buy for personal use or as an investment? This helps me shortlist the best ones for you.</div>
+            <div class="chat-meta right">🤖 AI Agent • 8 seconds later</div>
+          </div>
+          <div>
+            <div class="chat-bubble chat-in">Personal use. Can I see them? I'm free this weekend.</div>
+            <div class="chat-meta">Sarah M. • 2 minutes ago</div>
+          </div>
+          <div style="align-self:flex-end;">
+            <div class="chat-bubble chat-out">Perfect! I can arrange viewings for all 3 properties on Saturday. What time works best — morning (10am) or afternoon (2pm)?<br><br>I'll send you all the details and confirm the appointment right here.</div>
+            <div class="chat-meta right">🤖 AI Agent • 6 seconds later</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-soft);">Real conversation — handled entirely by your AI agent. Zero staff involved.</p>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <span class="section-label">Everything Included</span>
+    <h2 class="section-title">Your AI agent handles<br/>the entire sales process</h2>
+    <p class="section-sub">From first contact to confirmed booking — completely automated.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>WhatsApp + Email + Web</h3>
+        <p>One agent handles all three channels simultaneously. Every message gets a professional reply in seconds — even at 2am.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Intelligent Lead Qualification</h3>
+        <p>The AI asks the right questions naturally — budget, timeline, location, property type — and qualifies leads automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>Automatic Booking System</h3>
+        <p>When a lead wants to view a property, the AI checks your Google Calendar, proposes available slots, and creates the booking instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Smart Follow-up Engine</h3>
+        <p>Leads that go cold get automatic follow-ups at 24h, 48h, and 72h. Post-viewing follow-ups sent automatically the next day.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Instant Escalation</h3>
+        <p>Angry clients or complex requests are detected immediately and escalated to you with full context — before they churn.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>ROI Analytics Dashboard</h3>
+        <p>See exactly how many hours your agent saved, leads qualified, viewings booked, and the estimated dollar value delivered.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="background:rgba(108,99,255,0.03)" id="how-it-works">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:16px;">
+      <span class="section-label">Simple Setup</span>
+    </div>
+    <h2 class="section-title" style="text-align:center;">Live in 5 minutes</h2>
+    <p class="section-sub" style="text-align:center;margin:0 auto;">Three steps and your AI agent is handling real conversations.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Connect Your Channels</h3>
+        <p>Link your WhatsApp (via Twilio), Gmail, and website. Takes under 5 minutes with our guided setup wizard.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Customise Your Agent</h3>
+        <p>Upload your property listings and set your agent's personality. The AI learns your style and speaks as part of your brand.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Launch & Relax</h3>
+        <p>Your AI agent is live. Every inquiry gets handled. Every lead gets qualified. Every viewing gets booked. You just close deals.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section" id="testimonials">
+  <div class="container">
+    <span class="section-label">Social Proof</span>
+    <h2 class="section-title">Agencies love HireAI</h2>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"Before HireAI, we were losing leads every night. Now our AI handles 30+ conversations daily. We've increased viewings by 180% in 2 months."</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(108,99,255,0.2);">👨‍💼</div>
+          <div class="author-info">
+            <div class="name">Ahmed Al Rashid</div>
+            <div class="role">Director, Dubai Prime Properties</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"The follow-up engine alone recovered 7 cold leads last month. That's 7 potential deals we would have completely lost. ROI is insane."</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(52,211,153,0.15);">👩‍💼</div>
+          <div class="author-info">
+            <div class="name">Sarah Chen</div>
+            <div class="role">CEO, Singapore Luxury Homes</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="stars">★★★★★</div>
+        <p>"My agent replies in 8 seconds, qualifies the lead, and books a viewing — all while I'm asleep. I wake up to 3 confirmed appointments. Wild."</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(56,189,248,0.15);">🏢</div>
+          <div class="author-info">
+            <div class="name">Marcus Webb</div>
+            <div class="role">Partner, London Estate Agents</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" style="background:rgba(108,99,255,0.03)" id="pricing">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:16px;">
+      <span class="section-label">Simple Pricing</span>
+    </div>
+    <h2 class="section-title" style="text-align:center;">Pay once. Works all month.</h2>
+    <p class="section-sub" style="text-align:center;margin:0 auto;">No per-conversation fees. No hidden costs. Cancel anytime.</p>
+
+    <div class="pricing-grid">
+      <!-- Starter -->
+      <div class="pricing-card">
+        <p style="font-size:13px;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;">Starter</p>
+        <div class="price">
+          <span class="amount">$199</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> 1 AI Agent</li>
+          <li><span class="check">✓</span> WhatsApp only</li>
+          <li><span class="check">✓</span> 500 conversations/month</li>
+          <li><span class="check">✓</span> Lead qualification</li>
+          <li><span class="check">✓</span> Basic dashboard</li>
+        </ul>
+        <a href="/register" class="btn btn-ghost" style="width:100%;justify-content:center;">Get Started</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <p style="font-size:13px;color:#c4c0ff;text-transform:uppercase;letter-spacing:1px;">Pro</p>
+        <div class="price">
+          <span class="amount">$399</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> 1 AI Agent</li>
+          <li><span class="check">✓</span> All channels (WhatsApp + Email + Web)</li>
+          <li><span class="check">✓</span> Unlimited conversations</li>
+          <li><span class="check">✓</span> Google Calendar bookings</li>
+          <li><span class="check">✓</span> Follow-up engine</li>
+          <li><span class="check">✓</span> Analytics + Reports</li>
+        </ul>
+        <a href="/register" class="btn btn-primary" style="width:100%;justify-content:center;">Start Free Trial</a>
+      </div>
+
+      <!-- Team -->
+      <div class="pricing-card">
+        <p style="font-size:13px;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;">Team</p>
+        <div class="price">
+          <span class="amount">$699</span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="price-features">
+          <li><span class="check">✓</span> 3 AI Agents</li>
+          <li><span class="check">✓</span> All channels</li>
+          <li><span class="check">✓</span> Unlimited conversations</li>
+          <li><span class="check">✓</span> Team members (max 3)</li>
+          <li><span class="check">✓</span> Full analytics + PDF reports</li>
+          <li><span class="check">✓</span> Priority support</li>
+        </ul>
+        <a href="/register" class="btn btn-ghost" style="width:100%;justify-content:center;">Get Started</a>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:32px;font-size:14px;color:var(--text-soft);">
+      All plans include a <strong style="color:#fff;">14-day free trial</strong>. No credit card required to start.
+    </p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container" style="text-align:center;">
+    <span class="section-label">FAQ</span>
+    <h2 class="section-title">Frequently asked questions</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">
+          Will clients know they're talking to an AI?
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-a">Your agent introduces itself as a "digital assistant for [Your Agency]". It's professional and transparent without disrupting the conversation flow. You can also fully customise how it introduces itself.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">
+          What happens if the AI can't handle a conversation?
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-a">Anytime a client shows frustration or asks something complex, the agent immediately escalates to you with full context, flags it in your dashboard, and sends you a notification. You take over seamlessly.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">
+          How long does setup take?
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-a">Our guided onboarding wizard takes 5–10 minutes. You'll connect your channels, upload your listings, and launch your agent. Most customers are live the same day they sign up.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">
+          Can I use my own phone number for WhatsApp?
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-a">Yes. HireAI integrates with Twilio, which supports WhatsApp Business API. You can use an existing number or get a new one through Twilio. Setup instructions are included in the onboarding wizard.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">
+          Is my client data secure?
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-a">Yes. All data is encrypted in transit and at rest. We never share your client data with third parties. Each agency's data is fully isolated.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Your competitors are already using AI.<br/>Don't get left behind.</h2>
+      <p>Start your 14-day free trial. No credit card required.<br/>Be live in under 10 minutes.</p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+        <a href="/register" class="btn btn-white btn-lg">🚀 Start Free Trial</a>
+        <a href="/login" class="btn btn-ghost btn-lg">Sign In →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">HireAI</div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="/login">Login</a>
+        <a href="/register">Sign Up</a>
+      </div>
+      <div class="footer-copy">© 2025 HireAI. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(item => {
+    item.querySelector('.faq-q').addEventListener('click', () => {
+      item.classList.toggle('open');
+    });
+  });
+
+  // Smooth nav link offset for fixed nav
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        const top = target.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Animate on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .pricing-card, .testimonial-card, .step').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
