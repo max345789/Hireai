@@ -71,3 +71,4 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 
 ## Environment
 Use `.env.example` as the source of truth for required variables.
+For platforms with read-only app directories, set `DB_PATH=/tmp/hireai.db`.

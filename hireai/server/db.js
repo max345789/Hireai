@@ -1,21 +1,59 @@
+const fs = require('fs');
 const path = require('path');
 const { open } = require('sqlite');
 const sqlite3 = require('sqlite3');
 
 let db;
 
+function resolveCandidate(input) {
+  if (!input) return null;
+  if (path.isAbsolute(input)) return input;
+  return path.resolve(process.cwd(), input);
+}
+
+function dbCandidates() {
+  const values = [
+    resolveCandidate(process.env.DB_PATH),
+    path.resolve(__dirname, 'data', 'hireai.db'),
+    '/tmp/hireai.db',
+  ].filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+  for (const value of values) {
+    if (seen.has(value)) continue;
+    seen.add(value);
+    unique.push(value);
+  }
+
+  return unique;
+}
+
 async function getDb() {
   if (db) {
     return db;
   }
 
-  db = await open({
-    filename: path.join(__dirname, 'data', 'hireai.db'),
-    driver: sqlite3.Database,
-  });
+  const attempts = [];
 
-  await db.exec('PRAGMA foreign_keys = ON');
-  return db;
+  for (const filename of dbCandidates()) {
+    try {
+      fs.mkdirSync(path.dirname(filename), { recursive: true });
+
+      const opened = await open({
+        filename,
+        driver: sqlite3.Database,
+      });
+
+      await opened.exec('PRAGMA foreign_keys = ON');
+      db = opened;
+      return db;
+    } catch (error) {
+      attempts.push(`${filename}: ${error.message}`);
+    }
+  }
+
+  throw new Error(`SQLITE_CANTOPEN: unable to open database file. Tried -> ${attempts.join(' | ')}`);
 }
 
 async function ensureColumn(database, table, column, definition) {
