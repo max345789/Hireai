@@ -3,10 +3,10 @@ import { CalendarClock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Clock } f
 import { apiRequest } from '../lib/api';
 
 const STATUS_META = {
-  scheduled: { label: 'Scheduled', classes: 'bg-sky-50 text-sky-600 border border-sky-100' },
-  confirmed: { label: 'Confirmed', classes: 'bg-emerald-50 text-emerald-600 border border-emerald-100' },
-  completed: { label: 'Completed', classes: 'bg-gray-50 text-gray-400 border border-gray-100' },
-  cancelled: { label: 'Cancelled', classes: 'bg-rose-50 text-rose-500 border border-rose-100' },
+  scheduled: { label: 'Scheduled', classes: 'bg-sky-500/10 text-sky-400 border border-sky-500/20' },
+  confirmed: { label: 'Confirmed', classes: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+  completed: { label: 'Completed', classes: 'bg-white/[0.05] text-white/30 border border-white/[0.08]' },
+  cancelled: { label: 'Cancelled', classes: 'bg-rose-500/10 text-rose-400 border border-rose-500/20' },
 };
 
 function formatDateTime(dt) {
@@ -51,17 +51,17 @@ export default function BookingsPanel({ bookings: propBookings }) {
   }
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-card">
+    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card">
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 border border-accent/20">
             <CalendarClock className="h-4 w-4 text-accent" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">
+            <h2 className="font-heading text-base font-semibold text-white">
               {showAll ? 'Upcoming Viewings' : "Today's Viewings"}
             </h2>
-            <p className="text-xs text-gray-400">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-white/30">
               {displayed.length} {showAll ? 'upcoming' : 'today'}
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
         <button
           type="button"
           onClick={() => setShowAll((s) => !s)}
-          className="flex items-center gap-1.5 rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+          className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-xs font-medium text-white/50 transition hover:bg-white/[0.07] hover:text-white/80"
         >
           {showAll ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           {showAll ? 'Today' : 'All'}
@@ -78,7 +78,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
 
       <div className="space-y-2">
         {displayed.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center text-xs text-gray-400">
+          <div className="rounded-2xl border border-dashed border-white/[0.08] p-5 text-center text-xs text-white/30">
             {showAll ? 'No upcoming viewings scheduled' : 'No viewings for today'}
           </div>
         ) : (
@@ -90,22 +90,22 @@ export default function BookingsPanel({ bookings: propBookings }) {
             return (
               <article
                 key={booking.id}
-                className="rounded-2xl border border-gray-100 bg-gray-50/60 p-3 transition hover:border-gray-200 hover:bg-gray-50"
+                className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 transition hover:border-white/[0.10] hover:bg-white/[0.05]"
               >
                 <div className="flex items-start gap-3">
                   {/* Date badge */}
-                  <div className="flex w-11 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-1.5 text-center shadow-xs">
-                    <span className="font-mono text-[15px] font-bold leading-none text-gray-900 tabular-nums">
+                  <div className="flex w-11 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.06] py-1.5 text-center">
+                    <span className="font-mono text-[15px] font-bold leading-none text-white tabular-nums">
                       {new Date(booking.dateTime).getDate()}
                     </span>
-                    <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-wider text-gray-400">
+                    <span className="mt-0.5 font-mono text-[8px] font-semibold uppercase tracking-wider text-white/40">
                       {new Date(booking.dateTime).toLocaleString('default', { month: 'short' })}
                     </span>
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-gray-900">{booking.leadName}</p>
+                      <p className="truncate text-sm font-semibold text-white">{booking.leadName}</p>
                       <span
                         className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${statusMeta.classes}`}
                       >
@@ -113,12 +113,12 @@ export default function BookingsPanel({ bookings: propBookings }) {
                       </span>
                     </div>
 
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-400">
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/40">
                       <Clock className="h-3 w-3" />
                       {time}
                       {booking.property && (
                         <>
-                          <span className="text-gray-300">·</span>
+                          <span className="text-white/20">·</span>
                           <span className="truncate">{booking.property}</span>
                         </>
                       )}
@@ -132,7 +132,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
                       type="button"
                       disabled={busy}
                       onClick={() => handleConfirm(booking.id)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
                     >
                       <CheckCircle2 className="h-3 w-3" />
                       Confirm
@@ -141,7 +141,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
                       type="button"
                       disabled={busy}
                       onClick={() => handleCancel(booking.id)}
-                      className="inline-flex items-center gap-1 rounded-xl border border-rose-100 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-400 transition hover:bg-rose-500/20 disabled:opacity-50"
                     >
                       <XCircle className="h-3 w-3" />
                       Cancel

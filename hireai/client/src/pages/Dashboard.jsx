@@ -21,23 +21,23 @@ function upsertById(items, next, prepend = true) {
 const processedActions = new Set(['replied', 'qualified', 'booked', 'escalated', 'followed_up', 'needs_human']);
 
 const STAT_CONFIG = [
-  { key: 'whatsapp',  label: 'WhatsApp',   icon: MessageSquare, color: 'text-emerald-600', bg: 'bg-emerald-50',  border: 'border-emerald-100' },
-  { key: 'email',     label: 'Email',       icon: Mail,          color: 'text-blue-600',    bg: 'bg-blue-50',     border: 'border-blue-100' },
-  { key: 'web',       label: 'Web Chat',    icon: Globe,         color: 'text-violet-600',  bg: 'bg-violet-50',   border: 'border-violet-100' },
-  { key: 'aiReplies', label: 'AI Replies',  icon: Bot,           color: 'text-accent',      bg: 'bg-orange-50',   border: 'border-orange-100' },
-  { key: 'qualified', label: 'Qualified',   icon: Users,         color: 'text-amber-600',   bg: 'bg-amber-50',    border: 'border-amber-100' },
-  { key: 'booked',    label: 'Booked',      icon: Calendar,      color: 'text-sky-600',     bg: 'bg-sky-50',      border: 'border-sky-100' },
+  { key: 'whatsapp',  label: 'WhatsApp',  icon: MessageSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  { key: 'email',     label: 'Email',      icon: Mail,          color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
+  { key: 'web',       label: 'Web Chat',   icon: Globe,         color: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20' },
+  { key: 'aiReplies', label: 'AI Replies', icon: Bot,           color: 'text-accent',      bg: 'bg-accent/10',      border: 'border-accent/20' },
+  { key: 'qualified', label: 'Qualified',  icon: Users,         color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  { key: 'booked',    label: 'Booked',     icon: Calendar,      color: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/20' },
 ];
 
 function StatCard({ label, value, icon: Icon, color, bg, border }) {
   return (
-    <div className={`flex items-center gap-3 rounded-2xl border ${border} ${bg} px-4 py-3`}>
-      <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-xs`}>
+    <div className={`flex items-center gap-3 rounded-2xl border ${border} ${bg} px-4 py-3.5`}>
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.07]">
         <Icon className={`h-4 w-4 ${color}`} />
       </div>
       <div>
-        <p className={`tabular-nums text-xl font-bold leading-none ${color}`}>{value}</p>
-        <p className="mt-0.5 text-[10px] font-medium text-gray-500">{label}</p>
+        <p className={`font-heading tabular-nums text-xl font-bold leading-none ${color}`}>{value}</p>
+        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-white/30">{label}</p>
       </div>
     </div>
   );
@@ -318,11 +318,11 @@ export default function Dashboard({ onLogout, user }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F6F2]">
-        <div className="animate-fade-in rounded-3xl bg-white px-8 py-5 shadow-card">
-          <div className="flex items-center gap-3 text-gray-600">
+      <div className="flex min-h-screen items-center justify-center bg-[#090B12]">
+        <div className="animate-fade-in rounded-3xl border border-white/[0.08] bg-[#111521] px-8 py-5">
+          <div className="flex items-center gap-3 text-white/50">
             <Zap className="h-4 w-4 animate-pulse text-accent" />
-            <span className="text-sm font-medium">Loading HireAI...</span>
+            <span className="font-mono text-sm tracking-widest">LOADING HIREAI...</span>
           </div>
         </div>
       </div>
@@ -330,22 +330,25 @@ export default function Dashboard({ onLogout, user }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-gray-900">
-      <div className="p-3 sm:p-5">
+    <div className="min-h-screen bg-[#090B12] text-[#F4F5FC]">
+      {/* Subtle noise texture matching the landing page */}
+      <div className="noise-overlay" />
+
+      <div className="relative z-10 p-3 sm:p-5">
 
         {/* ── Header ── */}
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white px-5 py-4 shadow-card">
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/[0.08] bg-[#111521] px-5 py-4">
           <div>
-            <h1 className="font-heading text-xl font-bold text-gray-900">{user?.agencyName || 'HireAI Workspace'}</h1>
-            <p className="mt-0.5 text-xs text-gray-400">AI operations · real estate · live dashboard</p>
+            <h1 className="font-heading text-xl font-bold text-white">{user?.agencyName || 'HireAI Workspace'}</h1>
+            <p className="mt-0.5 font-mono text-xs tracking-widest text-white/30">AI OPERATIONS · REAL ESTATE · LIVE</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Agent status badge */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700">
+            {/* Agent status */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-400">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
               Agent Active · {activeCount} running · {agentStatus.messagesProcessed || 0} today
             </span>
@@ -355,21 +358,21 @@ export default function Dashboard({ onLogout, user }) {
               <button
                 type="button"
                 onClick={() => { setShowAlerts((prev) => !prev); markAlertsRead(); }}
-                className="relative inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+                className="relative inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.05] px-3.5 py-1.5 text-xs font-medium text-white/50 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
               >
                 <Bell className="h-3.5 w-3.5" />
                 Alerts
                 {unreadAlerts > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-[#090B12]">
                     {unreadAlerts}
                   </span>
                 )}
               </button>
 
               {showAlerts && (
-                <div className="absolute right-0 z-30 mt-2 w-80 rounded-3xl border border-gray-100 bg-white p-2 shadow-card2 animate-fade-in">
+                <div className="absolute right-0 z-30 mt-2 w-80 rounded-3xl border border-white/[0.08] bg-[#111521] p-2 shadow-card2 animate-fade-in">
                   {alerts.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-gray-400">No alerts yet</p>
+                    <p className="p-4 text-center font-mono text-xs text-white/30">No alerts yet</p>
                   ) : (
                     <div className="max-h-72 space-y-1 overflow-auto">
                       {alerts.map((alert) => (
@@ -377,10 +380,10 @@ export default function Dashboard({ onLogout, user }) {
                           key={alert.id}
                           type="button"
                           onClick={() => { if (alert.leadId) setSelectedLeadId(alert.leadId); setShowAlerts(false); }}
-                          className={`w-full rounded-2xl border p-3 text-left text-xs transition hover:border-gray-200 hover:bg-gray-50 ${alert.urgent ? 'border-amber-100 bg-amber-50/60' : 'border-gray-100 bg-gray-50'}`}
+                          className={`w-full rounded-2xl border p-3 text-left text-xs transition hover:border-white/[0.15] ${alert.urgent ? 'border-amber-500/20 bg-amber-500/10' : 'border-white/[0.08] bg-white/[0.03]'}`}
                         >
-                          <p className={`font-semibold ${alert.urgent ? 'text-amber-700' : 'text-gray-900'}`}>{alert.title}</p>
-                          <p className="mt-0.5 text-gray-500">{alert.body}</p>
+                          <p className={`font-semibold ${alert.urgent ? 'text-amber-400' : 'text-white'}`}>{alert.title}</p>
+                          <p className="mt-0.5 text-white/40">{alert.body}</p>
                         </button>
                       ))}
                     </div>
@@ -393,7 +396,7 @@ export default function Dashboard({ onLogout, user }) {
             <button
               type="button"
               onClick={() => setShowSimModal(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold text-white shadow-glow-sm transition hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-bold text-[#090B12] shadow-glow-sm transition hover:opacity-90"
             >
               <MailPlus className="h-3.5 w-3.5" />
               Simulate
@@ -403,7 +406,7 @@ export default function Dashboard({ onLogout, user }) {
             <button
               type="button"
               onClick={handleLogoutClick}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs text-gray-500 transition hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.05] px-3.5 py-1.5 text-xs text-white/40 transition hover:border-white/20 hover:text-white/70"
             >
               <LogOut className="h-3.5 w-3.5" />
               Logout
@@ -427,9 +430,9 @@ export default function Dashboard({ onLogout, user }) {
         </div>
 
         {error && (
-          <div className="mb-3 flex items-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm text-rose-600">
+          <div className="mb-3 flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
             <span className="flex-1">{error}</span>
-            <button type="button" onClick={() => setError('')} className="text-rose-400 hover:text-rose-600">
+            <button type="button" onClick={() => setError('')} className="text-red-400/50 hover:text-red-400">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -446,18 +449,18 @@ export default function Dashboard({ onLogout, user }) {
           {/* Centre column */}
           <div className="space-y-4">
             {/* Controls card */}
-            <div className="rounded-3xl bg-white p-5 shadow-card">
+            <div className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-gray-900">Conversation Controls</p>
-                  <p className="text-xs text-gray-400">Quick-process or reply manually to selected lead</p>
+                  <p className="font-heading font-semibold text-white">Conversation Controls</p>
+                  <p className="font-mono text-xs tracking-wider text-white/30">QUICK-PROCESS OR REPLY MANUALLY</p>
                 </div>
                 <TakeoverButton lead={selectedLead} onToggle={handleToggleTakeover} />
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-gray-500">Run AI on selected lead</label>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-white/30">Run AI on selected lead</label>
                   <div className="flex gap-2">
                     <input
                       value={incomingText}
@@ -469,7 +472,7 @@ export default function Dashboard({ onLogout, user }) {
                     <button
                       type="button"
                       onClick={handleQuickProcess}
-                      className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                      className="rounded-2xl bg-accent px-4 py-2 text-sm font-bold text-[#090B12] transition hover:opacity-90"
                     >
                       <Sparkles className="h-4 w-4" />
                     </button>
@@ -477,7 +480,7 @@ export default function Dashboard({ onLogout, user }) {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-gray-500">Manual response</label>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-white/30">Manual response</label>
                   <div className="flex gap-2">
                     <input
                       value={manualReply}
@@ -489,7 +492,7 @@ export default function Dashboard({ onLogout, user }) {
                     <button
                       type="button"
                       onClick={handleManualSend}
-                      className="inline-flex items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                      className="inline-flex items-center gap-1.5 rounded-2xl border border-white/[0.10] bg-white/[0.05] px-3 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/[0.08] hover:text-white"
                     >
                       <Send className="h-3.5 w-3.5" />
                       Send
@@ -524,20 +527,20 @@ export default function Dashboard({ onLogout, user }) {
 
       {/* ── Sim Modal ── */}
       {showSimModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleSimulationSubmit}
-            className="w-full max-w-lg animate-scale-in rounded-3xl bg-white p-6 shadow-card3"
+            className="w-full max-w-lg animate-scale-in rounded-3xl border border-white/[0.10] bg-[#111521] p-6 shadow-card3"
           >
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="font-heading text-lg font-bold text-gray-900">Simulate Incoming Message</h2>
-                <p className="mt-0.5 text-xs text-gray-400">Test the AI agent with a mock lead message</p>
+                <h2 className="font-heading text-lg font-bold text-white">Simulate Incoming Message</h2>
+                <p className="mt-0.5 font-mono text-xs tracking-widest text-white/30">TEST THE AI AGENT WITH A MOCK LEAD</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSimModal(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.10] text-white/30 transition hover:border-white/20 hover:bg-white/[0.05] hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -548,7 +551,7 @@ export default function Dashboard({ onLogout, user }) {
                 { label: 'Name',  key: 'name',  type: 'text' },
                 { label: 'Phone', key: 'phone', type: 'text' },
               ].map(({ label, key, type }) => (
-                <label key={key} className="text-xs font-semibold text-gray-500">
+                <label key={key} className="font-mono text-xs uppercase tracking-wider text-white/30">
                   {label}
                   <input
                     type={type}
@@ -559,7 +562,7 @@ export default function Dashboard({ onLogout, user }) {
                 </label>
               ))}
 
-              <label className="text-xs font-semibold text-gray-500 md:col-span-2">
+              <label className="font-mono text-xs uppercase tracking-wider text-white/30 md:col-span-2">
                 Channel
                 <select
                   value={simForm.channel}
@@ -573,7 +576,7 @@ export default function Dashboard({ onLogout, user }) {
                 </select>
               </label>
 
-              <label className="text-xs font-semibold text-gray-500 md:col-span-2">
+              <label className="font-mono text-xs uppercase tracking-wider text-white/30 md:col-span-2">
                 Message
                 <textarea
                   rows={4}
@@ -588,18 +591,18 @@ export default function Dashboard({ onLogout, user }) {
               <button
                 type="button"
                 onClick={() => setShowSimModal(false)}
-                className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50"
+                className="rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-2 text-xs font-medium text-white/40 transition hover:border-white/20 hover:text-white/70"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={simLoading}
-                className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-2 text-xs font-bold text-white shadow-glow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-2 text-xs font-bold text-[#090B12] shadow-glow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {simLoading ? (
                   <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#090B12]/30 border-t-[#090B12]" />
                     Sending...
                   </>
                 ) : (
@@ -619,7 +622,7 @@ export default function Dashboard({ onLogout, user }) {
         <button
           type="button"
           onClick={() => { setShowAlerts(true); markAlertsRead(); }}
-          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-gray-100 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 shadow-card2 animate-slide-up"
+          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#111521] px-4 py-2.5 text-xs font-bold text-white shadow-card2 animate-slide-up"
         >
           <CheckCircle2 className="h-4 w-4 text-accent" />
           {unreadAlerts} alert{unreadAlerts > 1 ? 's' : ''} need attention

@@ -1,66 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Light Theme ──────────────────────────────────────────── */
-:root,
-[data-theme='light'] {
-  --bg-rgb:        247, 246, 242;
-  --card-rgb:      255, 255, 255;
-  --surface-rgb:   242, 241, 237;
-  --textSoft-rgb:  107, 107, 107;
-  --accent-rgb:    232, 96, 76;
+/* ─── Dark Theme (always) ──────────────────────────────────── */
+:root {
+  --bg-rgb:        9, 11, 18;
+  --card-rgb:      17, 21, 33;
+  --surface-rgb:   20, 24, 38;
+  --textSoft-rgb:  146, 152, 168;
+  --accent-rgb:    182, 255, 46;
 
-  --text-primary:  #0D0D0D;
-  --text-muted:    #717171;
-  --text-faint:    #ABABAB;
-  --body-bg:       #F7F6F2;
-
-  --border-subtle: rgba(0, 0, 0, 0.05);
-  --border:        rgba(0, 0, 0, 0.09);
-  --border-strong: rgba(0, 0, 0, 0.15);
-}
-
-/* ─── Dark Theme ───────────────────────────────────────────── */
-[data-theme='dark'] {
-  --bg-rgb:        14, 14, 20;
-  --card-rgb:      22, 22, 32;
-  --surface-rgb:   30, 30, 42;
-  --textSoft-rgb:  122, 122, 140;
-  --accent-rgb:    232, 96, 76;
-
-  --text-primary:  #EFEFEF;
-  --text-muted:    #8A8A9A;
-  --text-faint:    #545464;
-  --body-bg:       rgb(14, 14, 20);
+  --text-primary:  #F4F5FC;
+  --text-muted:    #9298A8;
+  --text-faint:    #545474;
+  --body-bg:       #090B12;
 
   --border-subtle: rgba(255, 255, 255, 0.04);
   --border:        rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.18);
 }
-
-/* ─── Dark mode overrides ──────────────────────────────────── */
-[data-theme='dark'] .text-gray-900  { color: #EFEFEF !important; }
-[data-theme='dark'] .text-gray-800  { color: #D8D8E8 !important; }
-[data-theme='dark'] .text-gray-700  { color: #C0C0D0 !important; }
-[data-theme='dark'] .text-gray-600  { color: #A0A0B0 !important; }
-[data-theme='dark'] .text-gray-500  { color: #848494 !important; }
-[data-theme='dark'] .text-gray-400  { color: #686878 !important; }
-[data-theme='dark'] .border-gray-50 { border-color: rgba(255,255,255,0.03) !important; }
-[data-theme='dark'] .border-gray-100{ border-color: rgba(255,255,255,0.06) !important; }
-[data-theme='dark'] .border-gray-200{ border-color: rgba(255,255,255,0.10) !important; }
-[data-theme='dark'] .bg-gray-50     { background: rgb(30, 30, 42) !important; }
-[data-theme='dark'] .bg-gray-100    { background: rgb(22, 22, 32) !important; }
-[data-theme='dark'] .bg-white       { background: rgb(22, 22, 32) !important; }
 
 /* ─── Base ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
-html,
-body,
-#root {
-  height: 100%;
-}
+html, body, #root { height: 100%; }
 
 body {
   margin: 0;
@@ -69,75 +34,56 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.3s ease, color 0.2s ease;
 }
 
 ::selection {
-  background: rgba(232, 96, 76, 0.18);
+  background: rgba(182, 255, 46, 0.25);
+  color: #090B12;
 }
 
 /* ─── Scrollbar ────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(232, 96, 76, 0.25) transparent;
+  scrollbar-color: rgba(182, 255, 46, 0.2) transparent;
 }
 
 ::-webkit-scrollbar         { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(232, 96, 76, 0.25); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(232, 96, 76, 0.45); }
+::-webkit-scrollbar-thumb   { background: rgba(182, 255, 46, 0.2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(182, 255, 46, 0.35); }
 
 /* ─── Focus ────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid rgba(232, 96, 76, 0.55);
+  outline: 2px solid rgba(182, 255, 46, 0.55);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 /* ─── Keyframes ────────────────────────────────────────────── */
-@keyframes slideInBottom {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInTop {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.94); }
   to   { opacity: 1; transform: scale(1); }
 }
-
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
+  50%       { transform: translateY(-7px); }
 }
-
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
-
-@keyframes progressFill {
-  from { width: 0%; }
-  to   { width: 100%; }
-}
-
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
-
-/* ─── Animation classes ────────────────────────────────────── */
-.slide-in-bottom { animation: slideInBottom 260ms cubic-bezier(0.16,1,0.3,1); }
-.slide-in-top    { animation: slideInTop    260ms cubic-bezier(0.16,1,0.3,1); }
 
 /* ─── Number display ───────────────────────────────────────── */
 .tabular-nums {
@@ -145,20 +91,29 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* ─── Gradient text ────────────────────────────────────────── */
+/* ─── Label mono ───────────────────────────────────────────── */
+.label-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+/* ─── Gradient text (lime) ─────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #E8604C 0%, #F2834A 100%);
+  background: linear-gradient(135deg, #B6FF2E 0%, #7FDD00 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ─── Premium input ────────────────────────────────────────── */
+/* ─── Premium input (dark) ─────────────────────────────────── */
 .input-premium {
   width: 100%;
   border-radius: 14px;
-  border: 1.5px solid rgba(0,0,0,0.08);
-  background: #FAFAFA;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   padding: 10px 14px;
   font-size: 13px;
   color: var(--text-primary);
@@ -166,31 +121,46 @@ body {
   transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
+.input-premium::placeholder { color: var(--text-muted); }
+
 .input-premium:focus {
-  border-color: rgba(232,96,76,0.6);
-  background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(232,96,76,0.10);
+  border-color: rgba(182, 255, 46, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(182, 255, 46, 0.08);
 }
 
-/* ─── Timeline connector ───────────────────────────────────── */
+select option { background: #111521; color: #F4F5FC; }
+
+/* ─── Timeline connector (lime) ────────────────────────────── */
 .timeline-line {
   position: absolute;
   left: 14px;
   top: 28px;
   bottom: 0;
   width: 1.5px;
-  background: linear-gradient(to bottom, rgba(232,96,76,0.22) 0%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(182, 255, 46, 0.25) 0%, transparent 100%);
 }
 
 /* ─── Shimmer skeleton ─────────────────────────────────────── */
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(0,0,0,0.04) 25%,
-    rgba(0,0,0,0.08) 50%,
-    rgba(0,0,0,0.04) 75%
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
+}
+
+/* ─── Noise overlay ────────────────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  mix-blend-mode: overlay;
 }
