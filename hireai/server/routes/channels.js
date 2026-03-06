@@ -1,6 +1,7 @@
 const express = require('express');
 const twilioService = require('../services/twilioService');
 const emailService = require('../services/emailService');
+const metaService = require('../services/metaService');
 const Message = require('../models/Message');
 const WidgetSession = require('../models/WidgetSession');
 const User = require('../models/User');
@@ -38,6 +39,9 @@ router.get('/channels/status', requireAuth, async (_req, res) => {
   const lastWhatsapp = await getLastChannelMessage('whatsapp');
   const lastEmail = await getLastChannelMessage('email');
 
+  const lastInstagram = await getLastChannelMessage('instagram');
+  const lastMessenger = await getLastChannelMessage('messenger');
+
   res.json({
     whatsapp: {
       configured: twilioService.isConfigured() || Boolean(user?.twilioKey),
@@ -53,6 +57,16 @@ router.get('/channels/status', requireAuth, async (_req, res) => {
       configured: true,
       activeSessions: webActive,
       totalChats: webTotal,
+    },
+    instagram: {
+      configured: metaService.isConfigured(),
+      lastMessage: lastInstagram ? formatAgo(lastInstagram.timestamp) : 'never',
+      webhookUrl: '/api/webhook/meta',
+    },
+    messenger: {
+      configured: metaService.isConfigured(),
+      lastMessage: lastMessenger ? formatAgo(lastMessenger.timestamp) : 'never',
+      webhookUrl: '/api/webhook/meta',
     },
   });
 });

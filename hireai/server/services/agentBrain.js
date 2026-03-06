@@ -6,6 +6,7 @@ const ActivityLog = require('../models/ActivityLog');
 const { getAgentDecision } = require('./claudeService');
 const twilioService = require('./twilioService');
 const emailService = require('./emailService');
+const metaService = require('./metaService');
 
 const ACTION_TO_ACTIVITY = {
   reply: 'replied',
@@ -136,6 +137,16 @@ async function sendResponse(channel, lead, message, context) {
         message,
         { agencyName, agencyLogo }
       );
+    }
+
+    case 'instagram':
+    case 'messenger': {
+      // lead.phone is stored as "instagram:<IGSID>" or "messenger:<PSID>"
+      const recipientId = lead.phone ? String(lead.phone).split(':').slice(1).join(':') : null;
+      if (recipientId) {
+        return metaService.sendMessage(recipientId, message);
+      }
+      return { mocked: true, success: true, sid: null, channel };
     }
 
     case 'web':

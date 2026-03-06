@@ -50,7 +50,7 @@ function ConnectionDot({ connected, label }) {
   );
 }
 
-export default function Sidebar({ settings, agentActiveCount, totalLeads }) {
+export default function Sidebar({ settings, channelStatus, agentActiveCount, totalLeads }) {
   const agentPct = totalLeads > 0 ? Math.round((agentActiveCount / totalLeads) * 100) : 0;
 
   return (
@@ -104,6 +104,8 @@ export default function Sidebar({ settings, agentActiveCount, totalLeads }) {
         </p>
         <ConnectionDot label="WhatsApp"    connected={Boolean(settings?.twilioKey)} />
         <ConnectionDot label="Email"       connected={Boolean(settings?.gmailConfig)} />
+        <ConnectionDot label="Instagram"   connected={Boolean(channelStatus?.instagram?.configured)} />
+        <ConnectionDot label="Messenger"   connected={Boolean(channelStatus?.messenger?.configured)} />
         <ConnectionDot label="Calendar"    connected={Boolean(settings?.calendarConfig)} />
         <ConnectionDot label="Listings DB" connected={Boolean(settings?.listingsData)} />
       </div>

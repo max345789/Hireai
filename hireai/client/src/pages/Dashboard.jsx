@@ -50,6 +50,7 @@ export default function Dashboard({ onLogout, user }) {
   const [bookings, setBookings] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [channelStatus, setChannelStatus] = useState(null);
   const [agentStatus, setAgentStatus] = useState({ active: true, messagesProcessed: 0, leadsQualified: 0, bookingsMade: 0 });
   const [todayStats, setTodayStats] = useState({ whatsapp: 0, email: 0, web: 0, aiReplies: 0, qualified: 0, booked: 0 });
   const [selectedLeadId, setSelectedLeadId] = useState(null);
@@ -151,7 +152,7 @@ export default function Dashboard({ onLogout, user }) {
     let mounted = true;
     async function load() {
       try {
-        const [leadData, messageData, activityData, bookingData, settingsData, statusData, analyticsData] = await Promise.all([
+        const [leadData, messageData, activityData, bookingData, settingsData, statusData, analyticsData, channelStatusData] = await Promise.all([
           apiRequest('/leads'),
           apiRequest('/messages?limit=120'),
           apiRequest('/activity-log?limit=120'),
@@ -159,6 +160,7 @@ export default function Dashboard({ onLogout, user }) {
           apiRequest('/settings'),
           apiRequest('/agent/status'),
           apiRequest('/analytics/today'),
+          apiRequest('/channels/status').catch(() => null),
         ]);
         if (!mounted) return;
         setLeads(leadData.leads || []);
@@ -168,6 +170,7 @@ export default function Dashboard({ onLogout, user }) {
         setSettings(settingsData.settings || null);
         setAgentStatus(statusData || { active: true, messagesProcessed: 0, leadsQualified: 0, bookingsMade: 0 });
         setTodayStats(analyticsData || { whatsapp: 0, email: 0, web: 0, aiReplies: 0, qualified: 0, booked: 0 });
+        setChannelStatus(channelStatusData || null);
         if ((leadData.leads || []).length > 0) setSelectedLeadId((leadData.leads || [])[0].id);
       } catch (loadError) {
         setError(loadError.message);
@@ -437,7 +440,7 @@ export default function Dashboard({ onLogout, user }) {
 
           {/* Sidebar */}
           <div className="min-h-[50vh]">
-            <Sidebar settings={settings} agentActiveCount={activeCount} totalLeads={leads.length} />
+            <Sidebar settings={settings} channelStatus={channelStatus} agentActiveCount={activeCount} totalLeads={leads.length} />
           </div>
 
           {/* Centre column */}

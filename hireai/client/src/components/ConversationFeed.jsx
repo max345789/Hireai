@@ -1,22 +1,26 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { MessageSquare, Phone, Mail, Globe, Bot, User, AlertTriangle } from 'lucide-react';
+import { MessageSquare, Phone, Mail, Globe, Bot, User, AlertTriangle, Instagram, Facebook } from 'lucide-react';
 import clsx from 'clsx';
 
 const channelMeta = {
-  whatsapp: { label: 'WhatsApp', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100', icon: Phone },
-  sms:      { label: 'SMS',      color: 'text-sky-700',     bg: 'bg-sky-50 border-sky-100',         icon: MessageSquare },
-  email:    { label: 'Email',    color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-100',       icon: Mail },
-  web:      { label: 'Web Chat', color: 'text-violet-700',  bg: 'bg-violet-50 border-violet-100',  icon: Globe },
-  webchat:  { label: 'Web Chat', color: 'text-violet-700',  bg: 'bg-violet-50 border-violet-100',  icon: Globe },
-  manual:   { label: 'Manual',   color: 'text-gray-500',    bg: 'bg-gray-50 border-gray-100',      icon: User },
+  whatsapp:  { label: 'WhatsApp',  color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100', icon: Phone },
+  sms:       { label: 'SMS',       color: 'text-sky-700',     bg: 'bg-sky-50 border-sky-100',         icon: MessageSquare },
+  email:     { label: 'Email',     color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-100',       icon: Mail },
+  web:       { label: 'Web Chat',  color: 'text-violet-700',  bg: 'bg-violet-50 border-violet-100',  icon: Globe },
+  webchat:   { label: 'Web Chat',  color: 'text-violet-700',  bg: 'bg-violet-50 border-violet-100',  icon: Globe },
+  instagram: { label: 'Instagram', color: 'text-pink-700',    bg: 'bg-pink-50 border-pink-100',      icon: Instagram },
+  messenger: { label: 'Messenger', color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-200',      icon: Facebook },
+  manual:    { label: 'Manual',    color: 'text-gray-500',    bg: 'bg-gray-50 border-gray-100',      icon: User },
 };
 
 const tabs = [
-  { id: 'all',      label: 'All' },
-  { id: 'whatsapp', label: '📱 WhatsApp' },
-  { id: 'email',    label: '📧 Email' },
-  { id: 'web',      label: '💬 Web' },
-  { id: 'needs',    label: '⚠️ Needs Attention' },
+  { id: 'all',       label: 'All' },
+  { id: 'whatsapp',  label: '📱 WhatsApp' },
+  { id: 'email',     label: '📧 Email' },
+  { id: 'web',       label: '💬 Web' },
+  { id: 'instagram', label: '📸 Instagram' },
+  { id: 'messenger', label: '💙 Messenger' },
+  { id: 'needs',     label: '⚠️ Needs Attention' },
 ];
 
 function ChannelBadge({ channel }) {
@@ -94,11 +98,13 @@ export default function ConversationFeed({ messages, selectedLead, onLeadSelect,
 
   const filteredMessages = useMemo(() => {
     const isNeedsAttention = (item) => needsAttentionLeadIds.includes(Number(item.leadId));
-    if (activeTab === 'all')      return messages;
-    if (activeTab === 'whatsapp') return messages.filter((item) => item.channel === 'whatsapp');
-    if (activeTab === 'email')    return messages.filter((item) => item.channel === 'email');
-    if (activeTab === 'web')      return messages.filter((item) => item.channel === 'web' || item.channel === 'webchat');
-    if (activeTab === 'needs')    return messages.filter((item) => isNeedsAttention(item));
+    if (activeTab === 'all')       return messages;
+    if (activeTab === 'whatsapp')  return messages.filter((item) => item.channel === 'whatsapp');
+    if (activeTab === 'email')     return messages.filter((item) => item.channel === 'email');
+    if (activeTab === 'web')       return messages.filter((item) => item.channel === 'web' || item.channel === 'webchat');
+    if (activeTab === 'instagram') return messages.filter((item) => item.channel === 'instagram');
+    if (activeTab === 'messenger') return messages.filter((item) => item.channel === 'messenger');
+    if (activeTab === 'needs')     return messages.filter((item) => isNeedsAttention(item));
     return messages;
   }, [messages, activeTab, needsAttentionLeadIds]);
 

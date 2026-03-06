@@ -47,7 +47,11 @@ function sentimentDot(sentiment) {
 
 function LeadCard({ lead, selected, moved, onSelect, onMove }) {
   const channel = lead.channel || 'web';
-  const channelEmoji = channel === 'whatsapp' ? '📱' : channel === 'email' ? '📧' : '💬';
+  const channelEmoji = channel === 'whatsapp' ? '📱'
+    : channel === 'email' ? '📧'
+    : channel === 'instagram' ? '📸'
+    : channel === 'messenger' ? '💙'
+    : '💬';
 
   return (
     <div

@@ -32,6 +32,7 @@ const agentRoutes = require('./routes/agent');
 const bookingRoutes = require('./routes/bookings');
 const billingRoutes = require('./routes/billing');
 const calendarRoutes = require('./routes/calendar');
+const metaRoutes = require('./routes/meta');
 const { runAllSweeps } = require('./services/followupEngine');
 
 const app = express();
@@ -158,6 +159,7 @@ app.use('/api', agentRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', billingRoutes);
 app.use('/api', calendarRoutes);
+app.use('/api', metaRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -168,11 +170,13 @@ function connectionStatus() {
     process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_NUMBER
   );
   const gmailConnected = Boolean(process.env.GMAIL_USER && (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD));
+  const metaConnected  = Boolean(process.env.META_PAGE_ACCESS_TOKEN && process.env.META_VERIFY_TOKEN);
 
   return {
     claudeConnected,
     twilioConnected,
     gmailConnected,
+    metaConnected,
   };
 }
 
@@ -197,6 +201,8 @@ function printStartupBanner() {
   console.log(`${process.env.RAZORPAY_KEY_ID ? '✅' : '⚠️ '} Razorpay: ${process.env.RAZORPAY_KEY_ID ? 'Configured' : 'Not configured'}`);
   // eslint-disable-next-line no-console
   console.log(`${process.env.GOOGLE_CLIENT_ID ? '✅' : '⚠️ '} Google Calendar: ${process.env.GOOGLE_CLIENT_ID ? 'Configured' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
+  console.log(`${status.metaConnected ? '✅' : '⚠️ '} Meta (Instagram/Messenger): ${status.metaConnected ? 'Configured' : 'Not configured (add META_PAGE_ACCESS_TOKEN)'}`);
   // eslint-disable-next-line no-console
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
   // eslint-disable-next-line no-console

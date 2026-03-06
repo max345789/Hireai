@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HireAI — User Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F7F6F2;
+      color: #0D0D0D;
+      min-height: 100vh;
+      padding: 32px 24px 60px;
+    }
+
+    /* ── Header ── */
+    .header {
+      max-width: 1100px;
+      margin: 0 auto 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: #E8604C;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(232,96,76,0.35);
+    }
+    .brand-title { font-size: 22px; font-weight: 800; color: #0D0D0D; }
+    .brand-sub   { font-size: 12px; color: #999; margin-top: 1px; }
+
+    .badge {
+      background: #fff;
+      border: 1px solid #E5E3DF;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #717171;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    /* ── Legend ── */
+    .legend {
+      max-width: 1100px;
+      margin: 0 auto 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #E5E3DF;
+      border-radius: 10px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #444;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Diagram card ── */
+    .diagram-card {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #E5E3DF;
+      border-radius: 24px;
+      padding: 36px 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+      overflow-x: auto;
+    }
+
+    .diagram-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0D0D0D;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .diagram-title span {
+      background: #FFF0ED;
+      color: #E8604C;
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Mermaid overrides */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      font-family: 'Inter', sans-serif !important;
+    }
+
+    /* ── Steps grid (summary) ── */
+    .steps-section {
+      max-width: 1100px;
+      margin: 28px auto 0;
+    }
+    .steps-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #717171;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .step-card {
+      background: #fff;
+      border: 1px solid #E5E3DF;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .step-card:hover {
+      box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+      transform: translateY(-2px);
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .step-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0D0D0D;
+      margin-bottom: 4px;
+    }
+    .step-desc {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .footer {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      text-align: center;
+      font-size: 11px;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">🤖</div>
+      <div>
+        <div class="brand-title">HireAI</div>
+        <div class="brand-sub">User Journey Workflow</div>
+      </div>
+    </div>
+    <div class="badge">Real Estate AI Agent · End-to-End Flow</div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#E8604C"></div> Entry Points</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div> AI Processing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Success / Booked</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Decision Gates</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Escalation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0ea5e9"></div> Human Agent</div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-card">
+    <div class="diagram-title">
+      Complete User Journey
+      <span>Flowchart</span>
+    </div>
+
+    <div class="mermaid">
+flowchart TD
+    A([🌐 Lead Discovers HireAI]) --> B
+
+    B{Channel?}
+    B -->|📱 WhatsApp| C1[Twilio Webhook]
+    B -->|📧 Email| C2[Gmail Inbound]
+    B -->|💬 Web Widget| C3[Web Chat Socket]
+    B -->|📸 Instagram DM| C4[Meta Webhook]
+    B -->|💙 Messenger| C4
+
+    C1 & C2 & C3 & C4 --> D[📥 Message Received\nby Backend]
+
+    D --> E[🔍 Lead Lookup\nNew or Existing?]
+
+    E -->|New Lead| F[✨ Create Lead Record\nSet status: new]
+    E -->|Existing| G[📂 Load Lead Context\n+ History]
+
+    F & G --> H[🤖 Claude AI Agent\nProcesses Message]
+
+    H --> I{Intent Analysis}
+
+    I -->|Wants Info| J[📋 Send Property\nRecommendations]
+    I -->|Ready to Book| K{Check Calendar\nAvailability}
+    I -->|Negative / Upset| L[⚠️ Escalate to Human]
+    I -->|Unclear| M[🔄 Clarifying\nQuestion]
+
+    J --> N{Interested\nin Viewing?}
+    N -->|Yes| K
+    N -->|Not Yet| O[📅 Schedule\nFollow-up]
+
+    K -->|Slot Available| P[✅ Create Booking\nGoogle Calendar Sync]
+    K -->|No Slot| Q[📆 Offer\nAlternative Dates]
+
+    Q --> R[Lead Picks Date] --> P
+
+    P --> S[📩 Confirmation\nSent to Lead]
+    S --> T[🏆 Lead Status:\nBooked]
+
+    M --> H
+
+    O --> U[⏰ Follow-up Engine\nRuns every 30 min]
+    U --> V{Lead Responds?}
+    V -->|Yes| H
+    V -->|No Response\n48h| W[🔕 Mark Inactive\nStop Follow-ups]
+
+    L --> X[🔴 Pause AI Agent\nfor this Lead]
+    X --> Y[🔔 Alert Dashboard\nNeeds Attention]
+    Y --> Z[👤 Human Agent\nTakes Over]
+    Z --> AA{Issue Resolved?}
+    AA -->|Yes| AB[🤝 Hand Back to AI\nagent:handback]
+    AA -->|Needs Closure| AC[📝 Close Lead\nManually]
+
+    AB --> H
+
+    T --> AD[📊 Dashboard Updated\nReal-time via Socket.io]
+    AD --> AE[📈 Analytics\nROI Calculated]
+
+    classDef entry     fill:#FFF0ED,stroke:#E8604C,color:#c0392b,font-weight:600
+    classDef ai        fill:#EDE9FE,stroke:#6366f1,color:#4338ca,font-weight:600
+    classDef success   fill:#D1FAE5,stroke:#10b981,color:#065f46,font-weight:600
+    classDef decision  fill:#FEF3C7,stroke:#f59e0b,color:#92400e,font-weight:600
+    classDef escalate  fill:#FEE2E2,stroke:#ef4444,color:#991b1b,font-weight:600
+    classDef human     fill:#E0F2FE,stroke:#0ea5e9,color:#0c4a6e,font-weight:600
+    classDef system    fill:#F8FAFC,stroke:#CBD5E1,color:#475569,font-weight:600
+
+    class A entry
+    class C1,C2,C3,C4 entry
+    class H,M ai
+    class P,S,T,AB success
+    class B,I,N,K,V,AA decision
+    class L,X,Y escalate
+    class Z,AC human
+    class D,E,F,G,J,O,Q,R,U,W,AD,AE system
+    </div>
+  </div>
+
+  <!-- Step summary cards -->
+  <div class="steps-section">
+    <div class="steps-title">Key Stages at a Glance</div>
+    <div class="steps-grid">
+
+      <div class="step-card">
+        <div class="step-num" style="background:#FFF0ED;color:#E8604C">1</div>
+        <div class="step-label">Lead Entry</div>
+        <div class="step-desc">Lead contacts via WhatsApp, Email, Web Chat, Instagram DM, or Facebook Messenger.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#EDE9FE;color:#6366f1">2</div>
+        <div class="step-label">AI Processing</div>
+        <div class="step-desc">Claude AI reads the message, loads lead history, and decides the best response action.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#FEF3C7;color:#d97706">3</div>
+        <div class="step-label">Intent Detection</div>
+        <div class="step-desc">AI classifies intent — wants info, ready to book, upset, or needs clarification.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#D1FAE5;color:#059669">4</div>
+        <div class="step-label">Booking Flow</div>
+        <div class="step-desc">Checks Google Calendar availability, creates booking, and sends confirmation automatically.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#FEE2E2;color:#dc2626">5</div>
+        <div class="step-label">Escalation</div>
+        <div class="step-desc">Negative sentiment or complex questions trigger an alert — AI pauses, human takes over.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#E0F2FE;color:#0284c7">6</div>
+        <div class="step-label">Human Handoff</div>
+        <div class="step-desc">Agent responds manually. After resolution, AI is handed back with full context intact.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#F0FDF4;color:#16a34a">7</div>
+        <div class="step-label">Follow-up Engine</div>
+        <div class="step-desc">Cron job sweeps every 30 min. Sends auto follow-ups to non-responsive leads.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num" style="background:#F8FAFC;color:#475569">8</div>
+        <div class="step-label">Analytics & ROI</div>
+        <div class="step-desc">All actions update the dashboard in real-time. ROI, funnel, and heatmaps tracked live.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">HireAI Workflow · Built with Claude AI · © 2026</div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#ffffff',
+        primaryTextColor: '#0D0D0D',
+        primaryBorderColor: '#E5E3DF',
+        lineColor: '#CBD5E1',
+        secondaryColor: '#F7F6F2',
+        tertiaryColor: '#fff',
+        fontSize: '13px',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        edgeLabelBackground: '#ffffff',
+      },
+      flowchart: {
+        curve: 'basis',
+        padding: 20,
+        nodeSpacing: 40,
+        rankSpacing: 55,
+        htmlLabels: true,
+      },
+    });
+  </script>
+</body>
+</html>
