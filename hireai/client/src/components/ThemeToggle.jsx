@@ -10,12 +10,18 @@ export default function ThemeToggle({ className = '' }) {
       type="button"
       onClick={toggleTheme}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={`flex items-center gap-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 ${className}`}
+      className={`group flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500 transition-all hover:border-gray-200 hover:bg-gray-100 hover:text-gray-700 ${className}`}
     >
-      {isDark
-        ? <Sun  className="h-4 w-4 text-accent" />
-        : <Moon className="h-4 w-4 text-gray-400" />}
-      {isDark ? 'Light Mode' : 'Dark Mode'}
+      <div
+        className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-lg transition-all ${
+          isDark ? 'bg-accent/10' : 'bg-white shadow-xs'
+        }`}
+      >
+        {isDark
+          ? <Sun  className="h-3 w-3 text-accent" />
+          : <Moon className="h-3 w-3 text-gray-400 group-hover:text-gray-600" />}
+      </div>
+      <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
     </button>
   );
 }
