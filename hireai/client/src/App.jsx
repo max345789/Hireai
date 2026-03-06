@@ -45,8 +45,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg text-white">
-        <div className="rounded-xl border border-white/10 bg-card px-6 py-4">Starting HireAI...</div>
+      <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="rounded-2xl bg-white px-6 py-4 text-sm text-gray-500 shadow-card">Starting HireAI…</div>
       </div>
     );
   }

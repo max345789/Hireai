@@ -31,6 +31,7 @@ const analyticsRoutes = require('./routes/analytics');
 const agentRoutes = require('./routes/agent');
 const bookingRoutes = require('./routes/bookings');
 const billingRoutes = require('./routes/billing');
+const calendarRoutes = require('./routes/calendar');
 const { runAllSweeps } = require('./services/followupEngine');
 
 const app = express();
@@ -156,6 +157,7 @@ app.use('/api', analyticsRoutes);
 app.use('/api', agentRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', billingRoutes);
+app.use('/api', calendarRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
