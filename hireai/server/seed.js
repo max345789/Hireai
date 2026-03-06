@@ -22,7 +22,9 @@ async function run() {
     DELETE FROM sqlite_sequence WHERE name IN ('widget_sessions', 'webhook_events', 'idempotency_keys', 'blocked_contacts', 'followup_log', 'subscriptions', 'activity_log', 'bookings', 'messages', 'leads', 'users');
   `);
 
-  const password = await bcrypt.hash('password123', 10);
+  const adminPass = process.env.ADMIN_PASSWORD;
+  if (!adminPass) throw new Error('ADMIN_PASSWORD env var is required for seeding');
+  const password = await bcrypt.hash(adminPass, 12);
   const user = await db.run(
     `INSERT INTO users (agencyName, email, password, agentPersonality, twilioKey, gmailConfig, listingsData)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -115,7 +117,7 @@ async function run() {
   }
 
   console.log('Seed complete.');
-  console.log(`Demo login: admin@hireai.local / password123 (user id ${user.lastID})`);
+  console.log(`Demo login: admin@hireai.local / [ADMIN_PASSWORD env] (user id ${user.lastID})`);
 }
 
 run().catch((error) => {
