@@ -6,7 +6,7 @@ export default function Login({ onAuth }) {
   const [mode, setMode] = useState('login');
   const [agencyName, setAgencyName] = useState('');
   const [email, setEmail] = useState('admin@hireai.local');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,75 +36,81 @@ export default function Login({ onAuth }) {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-4 text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[10%] top-[10%] h-72 w-72 animate-float rounded-full bg-accent/30 blur-[120px]" />
-        <div className="absolute bottom-[10%] right-[12%] h-72 w-72 rounded-full bg-cyan-500/20 blur-[120px]" />
-      </div>
-
-      <form onSubmit={handleSubmit} className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-card/95 p-6 shadow-glow">
-        <div className="mb-5 text-center">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-xl bg-accent/20 px-3 py-2 text-accent">
-            <Bot className="h-4 w-4" />
-            AI Agent Command Center
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="mb-6 text-center">
+          <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent shadow-glow">
+            <Bot className="h-7 w-7 text-white" />
           </div>
-          <h1 className="font-heading text-3xl">HireAI</h1>
-          <p className="text-sm text-textSoft">24/7 client communication workspace</p>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">HireAI</h1>
+          <p className="mt-1 text-sm text-gray-500">AI Agent Command Center</p>
         </div>
 
-        {mode === 'register' && (
-          <label className="mb-3 block text-xs text-textSoft">
-            Agency Name
-            <div className="relative mt-1">
-              <Building2 className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-textSoft" />
-              <input
-                value={agencyName}
-                onChange={(event) => setAgencyName(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-bg py-2 pl-9 pr-3 text-sm outline-none focus:border-accent"
-                placeholder="Metro Property Group"
-              />
-            </div>
+        {/* Card */}
+        <form onSubmit={handleSubmit} className="rounded-3xl bg-white p-7 shadow-card2">
+          <h2 className="mb-5 text-lg font-semibold text-gray-900">
+            {mode === 'login' ? 'Sign in to your workspace' : 'Create your workspace'}
+          </h2>
+
+          {mode === 'register' && (
+            <label className="mb-4 block text-sm font-medium text-gray-600">
+              Agency Name
+              <div className="relative mt-1.5">
+                <Building2 className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  value={agencyName}
+                  onChange={(event) => setAgencyName(event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-accent focus:bg-white"
+                  placeholder="Metro Property Group"
+                />
+              </div>
+            </label>
+          )}
+
+          <label className="mb-4 block text-sm font-medium text-gray-600">
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-1.5 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-accent focus:bg-white"
+            />
           </label>
-        )}
 
-        <label className="mb-3 block text-xs text-textSoft">
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/10 bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
-          />
-        </label>
+          <label className="mb-5 block text-sm font-medium text-gray-600">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-1.5 w-full rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-accent focus:bg-white"
+            />
+          </label>
 
-        <label className="mb-3 block text-xs text-textSoft">
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="mt-1 w-full rounded-xl border border-white/10 bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
-          />
-        </label>
+          {error && (
+            <p className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-600">
+              {error}
+            </p>
+          )}
 
-        {error && <p className="mb-3 rounded-lg bg-rose-500/15 px-3 py-2 text-xs text-rose-200">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-glow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Please wait...' : mode === 'register' ? 'Create Workspace' : 'Enter Command Center'}
+          </button>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? 'Please wait...' : mode === 'register' ? 'Create Workspace' : 'Enter Command Center'}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setMode((prev) => (prev === 'login' ? 'register' : 'login'))}
-          className="mt-3 w-full text-xs text-textSoft underline-offset-2 hover:text-white hover:underline"
-        >
-          {mode === 'login' ? 'Need an account? Register' : 'Already have an account? Login'}
-        </button>
-      </form>
+          <button
+            type="button"
+            onClick={() => setMode((prev) => (prev === 'login' ? 'register' : 'login'))}
+            className="mt-4 w-full text-xs text-gray-400 underline-offset-2 transition hover:text-gray-600 hover:underline"
+          >
+            {mode === 'login' ? 'Need an account? Register' : 'Already have an account? Login'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

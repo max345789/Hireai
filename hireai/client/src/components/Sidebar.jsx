@@ -4,11 +4,13 @@ import ThemeToggle from './ThemeToggle';
 
 function ToolStatus({ label, connected }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-surface/60 px-3 py-2">
-      <span className="text-sm text-textSoft">{label}</span>
-      <span className="flex items-center gap-2 text-xs">
-        <CircleDot className={`h-3 w-3 ${connected ? 'text-emerald-400' : 'text-rose-400'}`} />
-        {connected ? 'Connected' : 'Disconnected'}
+    <div className="flex items-center justify-between rounded-2xl bg-gray-50 px-3 py-2.5">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="flex items-center gap-1.5 text-xs font-medium">
+        <CircleDot className={`h-3 w-3 ${connected ? 'text-emerald-500' : 'text-rose-400'}`} />
+        <span className={connected ? 'text-emerald-600' : 'text-rose-500'}>
+          {connected ? 'Connected' : 'Disconnected'}
+        </span>
       </span>
     </div>
   );
@@ -21,13 +23,13 @@ function NavItem({ to, icon: Icon, label }) {
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+      className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all ${
         active
           ? 'bg-accent text-white shadow-glow'
-          : 'bg-surface/50 text-textSoft hover:bg-surface hover:text-white'
+          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
       }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-4 w-4 flex-shrink-0" />
       {label}
     </Link>
   );
@@ -35,43 +37,48 @@ function NavItem({ to, icon: Icon, label }) {
 
 export default function Sidebar({ settings, agentActiveCount, totalLeads }) {
   return (
-    <aside className="h-full rounded-2xl border border-white/5 bg-card/95 p-4 shadow-glow backdrop-blur">
-      <div className="mb-6">
-        <div className="mb-1 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-accent" />
-          <h1 className="font-heading text-xl font-bold text-white">HireAI</h1>
+    <aside className="flex h-full flex-col rounded-3xl bg-white p-5 shadow-card">
+      {/* Brand */}
+      <div className="mb-7">
+        <div className="mb-1 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-white">
+            <Building2 className="h-4 w-4" />
+          </div>
+          <h1 className="font-heading text-xl font-bold text-gray-900">HireAI</h1>
         </div>
-        <p className="text-xs text-textSoft">AI Agent Command Center</p>
+        <p className="ml-[42px] text-xs text-gray-400">AI Agent Command Center</p>
       </div>
 
-      <div className="mb-6 space-y-2">
-        <NavItem to="/" icon={MessageSquareText} label="Dashboard" />
-        <NavItem to="/analytics" icon={BarChart2} label="Analytics" />
-        <NavItem to="/billing" icon={CreditCard} label="Billing" />
-        <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
-      </div>
+      {/* Nav */}
+      <nav className="mb-6 space-y-1">
+        <NavItem to="/"          icon={MessageSquareText} label="Dashboard" />
+        <NavItem to="/analytics" icon={BarChart2}         label="Analytics" />
+        <NavItem to="/billing"   icon={CreditCard}        label="Billing" />
+        <NavItem to="/settings"  icon={SettingsIcon}      label="Settings" />
+      </nav>
 
-      <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2">
-        <p className="text-xs text-textSoft">Agent Status</p>
-        <p className="mt-1 flex items-center gap-2 font-mono text-sm text-white">
-          <Bot className="h-4 w-4 text-emerald-400" />
-          <span>{agentActiveCount}/{totalLeads} Conversations Active</span>
+      {/* Agent pulse */}
+      <div className="mb-5 rounded-2xl border border-accent/20 bg-orange-50 px-4 py-3">
+        <p className="text-xs font-medium text-gray-500">Agent Status</p>
+        <p className="mt-1.5 flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <Bot className="h-4 w-4 text-accent" />
+          {agentActiveCount}/{totalLeads} Active
         </p>
       </div>
 
+      {/* Tool connections */}
       <div className="space-y-2">
-        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-textSoft">
-          <Activity className="h-3.5 w-3.5" />
-          Tool Connections
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+          <Activity className="h-3 w-3" />
+          Connections
         </p>
-
-        <ToolStatus label="WhatsApp (Twilio)" connected={Boolean(settings?.twilioKey)} />
-        <ToolStatus label="Email (Gmail)" connected={Boolean(settings?.gmailConfig)} />
-        <ToolStatus label="Calendar" connected={Boolean(settings?.calendarConfig)} />
+        <ToolStatus label="WhatsApp"    connected={Boolean(settings?.twilioKey)} />
+        <ToolStatus label="Email"       connected={Boolean(settings?.gmailConfig)} />
+        <ToolStatus label="Calendar"    connected={Boolean(settings?.calendarConfig)} />
         <ToolStatus label="Listings DB" connected={Boolean(settings?.listingsData)} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-auto pt-5">
         <ThemeToggle className="w-full justify-center" />
       </div>
     </aside>

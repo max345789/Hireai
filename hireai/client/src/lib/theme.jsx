@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
+const ThemeContext = createContext({ theme: 'light', toggleTheme: () => {} });
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem('hireai-theme') || 'dark';
+      return localStorage.getItem('hireai-theme') || 'light';
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
