@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb, isPostgres } = require('../db');
 
 class Booking {
   static async create(data) {
@@ -48,6 +48,9 @@ class Booking {
 
   static async today() {
     const db = await getDb();
+    const dateFilter = isPostgres()
+      ? "DATE(b.dateTime AT TIME ZONE 'UTC') = CURRENT_DATE"
+      : "date(b.dateTime) = date('now', 'localtime')";
     return db.all(
       `SELECT
          b.*,
@@ -56,19 +59,23 @@ class Booking {
          l.channel AS leadChannel
        FROM bookings b
        JOIN leads l ON l.id = b.leadId
-       WHERE date(b.dateTime) = date('now', 'localtime')
+       WHERE ${dateFilter}
        ORDER BY b.dateTime ASC`
     );
   }
 
   static async upcoming(days = 7) {
     const db = await getDb();
+    const rangeFilter = isPostgres()
+      ? `b.dateTime >= CURRENT_TIMESTAMP
+         AND b.dateTime <= CURRENT_TIMESTAMP + INTERVAL '${Number(days)} days'`
+      : `b.dateTime >= datetime('now')
+         AND b.dateTime <= datetime('now', '+${Number(days)} days')`;
     return db.all(
       `SELECT b.*, l.userId AS leadUserId, l.name AS leadName, l.channel AS leadChannel
        FROM bookings b
        JOIN leads l ON l.id = b.leadId
-       WHERE b.dateTime >= datetime('now')
-         AND b.dateTime <= datetime('now', '+${days} days')
+       WHERE ${rangeFilter}
          AND b.status NOT IN ('cancelled', 'completed')
        ORDER BY b.dateTime ASC`
     );

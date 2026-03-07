@@ -6,7 +6,7 @@ It unifies WhatsApp, email, and web chat into one workspace where Claude-powered
 ## Stack
 - Frontend: React + Vite + Tailwind
 - Backend: Node.js + Express + Socket.io
-- Database: SQLite
+- Database: SQLite (local) or Postgres/Supabase (production)
 - AI: Anthropic Claude (`claude-sonnet-4-20250514`)
 - Channels: Twilio WhatsApp/SMS, Gmail SMTP, Web Widget
 
@@ -78,12 +78,14 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 
 ## Environment
 Use `.env.example` as the source of truth for required variables.
-For platforms with read-only app directories, set `DB_PATH=/tmp/dab-ai.db`.
+For local SQLite, keep `DB_PATH` pointed at a writable file.
+For Supabase or any hosted Postgres, set `DATABASE_URL` to the direct Postgres connection string. `DATABASE_URL` takes priority over `DB_PATH`.
 For production:
 - Intended primary domain: `https://dabcloud.in`
 - Set `BASE_URL=https://dabcloud.in`
 - Set `FRONTEND_URL=https://dabcloud.in`
 - Set `CORS_ORIGINS=https://dabcloud.in`
+- Prefer `DATABASE_URL=<supabase-direct-postgres-url>`
 - `ALLOW_MOCK_DELIVERY=false`
 - `BOOTSTRAP_ADMIN_ON_START=false`
 - Configure AI chain with one or more keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`

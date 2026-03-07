@@ -20,6 +20,10 @@ function timestamp() {
 }
 
 function run() {
+  if (process.env.DATABASE_URL || process.env.SUPABASE_DB_URL) {
+    throw new Error('backup-db.js only supports local SQLite. Use pg_dump or Supabase backups for Postgres.');
+  }
+
   const projectRoot = path.join(__dirname, '..', '..');
   const dbPath = path.join(__dirname, '..', 'data', 'dab-ai.db');
   const backupDir = path.isAbsolute(env.backupDir) ? env.backupDir : path.join(projectRoot, env.backupDir);

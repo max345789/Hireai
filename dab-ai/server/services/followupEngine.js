@@ -35,6 +35,7 @@ async function logFollowup(db, { leadId, leadName, step, channel, message }) {
  */
 async function sweepInactiveLeads(io) {
   const db = await getDb();
+  const timestampCutoff = hoursAgo(24);
 
   const leads = await db.all(
     `SELECT l.*,
@@ -51,7 +52,7 @@ async function sweepInactiveLeads(io) {
        AND m.direction = 'in'
        AND m.timestamp <= ?
      LIMIT 30`,
-    [hoursAgo(24)]
+    [timestampCutoff]
   );
 
   for (const lead of leads) {

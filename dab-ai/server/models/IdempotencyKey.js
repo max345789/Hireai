@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb, isPostgres } = require('../db');
 
 class IdempotencyKey {
   static async get(scope, key) {
@@ -82,7 +82,7 @@ class IdempotencyKey {
     const result = await db.run(
       `DELETE FROM idempotency_keys
        WHERE expiresAt IS NOT NULL
-         AND datetime(expiresAt) <= datetime('now')`
+         AND ${isPostgres() ? 'expiresAt <= CURRENT_TIMESTAMP' : "datetime(expiresAt) <= datetime('now')"}`
     );
 
     return Number(result?.changes || 0);

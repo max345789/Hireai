@@ -25,6 +25,7 @@
     "mailparser": "^3.9.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
+    "pg": "^8.20.0",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { getDb } = require('../db');
+const { getDb, isPostgres } = require('../db');
 
 class WidgetSession {
   static makeSessionId() {
@@ -44,7 +44,7 @@ class WidgetSession {
     const row = await db.get(
       `SELECT COUNT(*) AS count
        FROM widget_sessions
-       WHERE datetime(lastSeenAt) >= datetime('now', '-1 day')`
+       WHERE ${isPostgres() ? "lastSeenAt >= CURRENT_TIMESTAMP - INTERVAL '1 day'" : "datetime(lastSeenAt) >= datetime('now', '-1 day')"}`
     );
 
     return Number(row?.count || 0);

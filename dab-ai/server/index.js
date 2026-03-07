@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const cron = require('node-cron');
 const { Server } = require('socket.io');
 
-const { initDb, getDb } = require('./db');
+const { initDb, getDb, isPostgres } = require('./db');
 const { env, startupConfigChecks } = require('./config/env');
 const logger = require('./services/logger');
 
@@ -124,6 +124,9 @@ async function ensureBootstrapAdmin() {
 
 async function runFollowupSweep() {
   const db = await getDb();
+  const inactiveFilter = isPostgres()
+    ? "m.timestamp <= CURRENT_TIMESTAMP - INTERVAL '24 hours'"
+    : "datetime(m.timestamp) <= datetime('now', '-24 hours')";
   const leads = await db.all(
     `SELECT l.*
      FROM leads l
@@ -133,7 +136,7 @@ async function runFollowupSweep() {
      WHERE l.aiPaused = 0
        AND l.status IN ('new', 'qualified')
        AND m.direction = 'in'
-       AND datetime(m.timestamp) <= datetime('now', '-24 hours')
+       AND ${inactiveFilter}
      LIMIT 20`
   );
 

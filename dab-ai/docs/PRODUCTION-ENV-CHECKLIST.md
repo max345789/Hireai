@@ -7,6 +7,7 @@ Free setup to finish first:
 - `BASE_URL=https://dabcloud.in`
 - `FRONTEND_URL=https://dabcloud.in`
 - `CORS_ORIGINS=https://dabcloud.in`
+- `DATABASE_URL=<supabase direct postgres url>`
 - `NODE_ENV=production`
 - `ALLOW_MOCK_DELIVERY=false`
 - `BOOTSTRAP_ADMIN_ON_START=false`
@@ -14,6 +15,7 @@ Free setup to finish first:
 
 Core app variables:
 - `PORT=3001`
+- `SUPABASE_DB_URL` optional alias for `DATABASE_URL`
 - `JWT_ACCESS_TTL=7d`
 - `LOG_LEVEL=info`
 - `REQUEST_BODY_LIMIT=1mb`

@@ -11,7 +11,8 @@ npm run backup --prefix server
 ```bash
 npm run restore --prefix server -- /absolute/path/to/backup.db
 ```
-- Restore replaces `server/data/dab-ai.db`.
+- For Supabase/Postgres, use Supabase backups or `pg_dump` / `pg_restore`.
+- Restore replaces `server/data/dab-ai.db` only for local SQLite setups.
 - Stop application processes before restore.
 
 ## Verification

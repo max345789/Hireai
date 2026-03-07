@@ -1,7 +1,7 @@
 const express = require('express');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
-const { getDb } = require('../db');
+const { getDb, isPostgres } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { safeLimit } = require('../utils/validate');
 
@@ -38,6 +38,7 @@ router.get('/analytics/today', requireAuth, async (_req, res) => {
 router.get('/analytics/range', requireAuth, async (req, res) => {
   try {
     const db = await getDb();
+    const pg = isPostgres();
     const from = parseIso(req.query.from, 'from') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const to = parseIso(req.query.to, 'to') || new Date().toISOString();
     if (new Date(from).getTime() > new Date(to).getTime()) {
@@ -52,7 +53,7 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN direction='out' THEN 1 ELSE 0 END) AS outbound
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?`,
+         WHERE m.timestamp BETWEEN ? AND ? AND l.userId = ?`,
         [from, to, userId]
       ),
       db.get(
@@ -62,7 +63,7 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status='booked' THEN 1 ELSE 0 END) AS booked,
                 SUM(CASE WHEN status='closed' THEN 1 ELSE 0 END) AS closed,
                 SUM(CASE WHEN status='escalated' THEN 1 ELSE 0 END) AS escalated
-         FROM leads WHERE datetime(createdAt) BETWEEN datetime(?) AND datetime(?) AND userId = ?`,
+         FROM leads WHERE createdAt BETWEEN ? AND ? AND userId = ?`,
         [from, to, userId]
       ),
       db.get(
@@ -71,14 +72,14 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END) AS cancelled
          FROM bookings b
          JOIN leads l ON l.id = b.leadId
-         WHERE datetime(b.createdAt) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?`,
+         WHERE b.createdAt BETWEEN ? AND ? AND l.userId = ?`,
         [from, to, userId]
       ),
       db.all(
-        `SELECT strftime('%H', datetime(m.timestamp)) AS hour, COUNT(*) AS count
+        `SELECT ${pg ? 'EXTRACT(HOUR FROM m.timestamp)' : "strftime('%H', datetime(m.timestamp))"} AS hour, COUNT(*) AS count
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?
+         WHERE ${pg ? 'm.timestamp BETWEEN ? AND ?' : 'datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?)'} AND l.userId = ?
          GROUP BY hour ORDER BY hour`,
         [from, to, userId]
       ),
@@ -86,13 +87,13 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
         `SELECT m.channel AS channel, COUNT(*) AS count
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND m.direction='in' AND l.userId = ?
+         WHERE ${pg ? 'm.timestamp BETWEEN ? AND ?' : 'datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?)'} AND m.direction='in' AND l.userId = ?
          GROUP BY m.channel`,
         [from, to, userId]
       ),
       db.all(
-        `SELECT date(datetime(createdAt)) AS day, COUNT(*) AS count
-         FROM leads WHERE datetime(createdAt) BETWEEN datetime(?) AND datetime(?) AND userId = ?
+        `SELECT ${pg ? 'DATE(createdAt)' : 'date(datetime(createdAt))'} AS day, COUNT(*) AS count
+         FROM leads WHERE ${pg ? 'createdAt BETWEEN ? AND ?' : 'datetime(createdAt) BETWEEN datetime(?) AND datetime(?)'} AND userId = ?
          GROUP BY day ORDER BY day`,
         [from, to, userId]
       ),
@@ -100,19 +101,19 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
         `SELECT AVG(diff_seconds)/60.0 AS avgMinutes
          FROM (
            SELECT (
-             strftime('%s', (
-               SELECT MIN(datetime(out.timestamp))
+             ${pg ? 'EXTRACT(EPOCH FROM (' : "strftime('%s', ("}
+               SELECT MIN(${pg ? 'out.timestamp' : 'datetime(out.timestamp)'})
                FROM messages out
                WHERE out.leadId = in_.leadId
                  AND out.direction = 'out'
                  AND out.sentByAI = 1
-                 AND datetime(out.timestamp) > datetime(in_.timestamp)
-             )) - strftime('%s', datetime(in_.timestamp))
+                 AND ${pg ? 'out.timestamp > in_.timestamp' : 'datetime(out.timestamp) > datetime(in_.timestamp)'}
+             ${pg ? ')) - EXTRACT(EPOCH FROM in_.timestamp)' : ")) - strftime('%s', datetime(in_.timestamp))"}
            ) AS diff_seconds
            FROM messages in_
            JOIN leads lead_scope ON lead_scope.id = in_.leadId AND lead_scope.userId = ?
            WHERE in_.direction = 'in'
-             AND datetime(in_.timestamp) BETWEEN datetime(?) AND datetime(?)
+             AND ${pg ? 'in_.timestamp BETWEEN ? AND ?' : 'datetime(in_.timestamp) BETWEEN datetime(?) AND datetime(?)'}
          )
          WHERE diff_seconds IS NOT NULL`,
         [userId, from, to]

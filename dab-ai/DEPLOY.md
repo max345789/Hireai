@@ -78,6 +78,7 @@ docker-compose logs -f server
 |---|---|---|
 | `ANTHROPIC_API_KEY` | ✅ | Claude AI key |
 | `JWT_SECRET` | ✅ | Random 32+ char string |
+| `DATABASE_URL` | ✅ | Direct Postgres URL from Supabase |
 | `CORS_ORIGINS` | ✅ | Comma-separated frontend origins |
 | `JWT_ACCESS_TTL` | Optional | Access token TTL (default `7d`) |
 | `BASE_URL` | ✅ | Public backend base URL, use `https://dabcloud.in` |
@@ -136,17 +137,8 @@ Add these secrets to your GitHub repo (Settings → Secrets):
 
 ---
 
-## Database Backup (SQLite)
+## Database Backup
 
-The database is at `server/data/dab-ai.db`. For production:
+For Supabase/Postgres, use Supabase backups or `pg_dump` against your project database.
 
-```bash
-# Daily backup cron (add to crontab)
-0 2 * * * cp /app/data/dab-ai.db /backups/dab-ai-$(date +%Y%m%d).db
-```
-
-For Docker volume backup:
-```bash
-docker run --rm -v dab-ai_dab-ai-db:/data -v $(pwd)/backups:/backup alpine \
-  cp /data/dab-ai.db /backup/dab-ai-$(date +%Y%m%d).db
-```
+For local SQLite-only setups, the database is at `server/data/dab-ai.db`.

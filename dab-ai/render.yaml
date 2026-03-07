@@ -16,6 +16,8 @@ services:
         value: https://dabcloud.in
       - key: CORS_ORIGINS
         value: https://dabcloud.in
+      - key: DATABASE_URL
+        sync: false
       - key: PORT
         value: 3001
       - key: JWT_ACCESS_TTL
