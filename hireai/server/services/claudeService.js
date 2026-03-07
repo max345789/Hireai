@@ -1,6 +1,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const MODEL = 'claude-sonnet-4-20250514';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
 const AGENT_SYSTEM_PROMPT = `You are an elite AI real estate agent working 24/7. You are warm,
 professional, and extremely efficient.
@@ -56,16 +58,42 @@ const ACTIONS = new Set(['reply', 'qualify', 'book_viewing', 'escalate', 'follow
 const STATUSES = new Set(['new', 'qualified', 'booked', 'closed', 'escalated']);
 const SENTIMENTS = new Set(['positive', 'neutral', 'negative']);
 
-let client;
+let anthropicClient;
 
-function getClient() {
+function getAnthropicClient() {
   if (!process.env.ANTHROPIC_API_KEY) return null;
 
-  if (!client) {
-    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
 
-  return client;
+  return anthropicClient;
+}
+
+function getConfiguredAiModels() {
+  const requested = String(process.env.AI_MODEL_CHAIN || 'claude,openai,gemini')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  const unique = [...new Set(requested)];
+
+  const models = [];
+  for (const provider of unique) {
+    if (provider === 'claude' && process.env.ANTHROPIC_API_KEY) {
+      models.push({ provider: 'claude', model: process.env.CLAUDE_MODEL || MODEL });
+    }
+
+    if (provider === 'openai' && process.env.OPENAI_API_KEY) {
+      models.push({ provider: 'openai', model: OPENAI_MODEL });
+    }
+
+    if (provider === 'gemini' && process.env.GEMINI_API_KEY) {
+      models.push({ provider: 'gemini', model: GEMINI_MODEL });
+    }
+  }
+
+  return models;
 }
 
 function extractBudget(text) {
@@ -258,7 +286,7 @@ function extractJson(text) {
   }
 }
 
-function validateAndNormalizeDecision(raw, context) {
+function validateAndNormalizeDecision(raw, context, source = 'ai') {
   if (!raw || typeof raw !== 'object') return null;
 
   const action = ACTIONS.has(raw.action) ? raw.action : null;
@@ -273,7 +301,7 @@ function validateAndNormalizeDecision(raw, context) {
 
   if (!normalizedStatus) return null;
 
-  const normalized = {
+  return {
     action,
     message,
     leadUpdate: {
@@ -303,10 +331,8 @@ function validateAndNormalizeDecision(raw, context) {
       typeof raw.escalationReason === 'string' && raw.escalationReason.trim()
         ? raw.escalationReason.trim()
         : null,
-    source: 'claude',
+    source,
   };
-
-  return normalized;
 }
 
 function buildUserPrompt(context, strict) {
@@ -319,14 +345,12 @@ function buildUserPrompt(context, strict) {
   }`;
 }
 
-async function requestClaudeDecision(context, strictMode) {
-  const anthropicClient = getClient();
-  if (!anthropicClient) {
-    return null;
-  }
+async function requestClaudeDecision(context, strictMode, modelName) {
+  const client = getAnthropicClient();
+  if (!client) return null;
 
-  const completion = await anthropicClient.messages.create({
-    model: MODEL,
+  const completion = await client.messages.create({
+    model: modelName || MODEL,
     max_tokens: 700,
     temperature: 0.2,
     system: AGENT_SYSTEM_PROMPT,
@@ -341,36 +365,109 @@ async function requestClaudeDecision(context, strictMode) {
   return extractJson(text);
 }
 
+async function requestOpenAiDecision(context, strictMode, modelName) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: modelName || OPENAI_MODEL,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: AGENT_SYSTEM_PROMPT },
+        { role: 'user', content: buildUserPrompt(context, strictMode) },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data?.choices?.[0]?.message?.content || '';
+  return extractJson(text);
+}
+
+async function requestGeminiDecision(context, strictMode, modelName) {
+  const model = modelName || GEMINI_MODEL;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: AGENT_SYSTEM_PROMPT }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: buildUserPrompt(context, strictMode) }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || '').join('\n') || '';
+  return extractJson(text);
+}
+
+async function requestDecisionFromProvider(providerConfig, context, strictMode) {
+  if (providerConfig.provider === 'claude') {
+    return requestClaudeDecision(context, strictMode, providerConfig.model);
+  }
+
+  if (providerConfig.provider === 'openai') {
+    return requestOpenAiDecision(context, strictMode, providerConfig.model);
+  }
+
+  if (providerConfig.provider === 'gemini') {
+    return requestGeminiDecision(context, strictMode, providerConfig.model);
+  }
+
+  return null;
+}
+
 async function getAgentDecision(context) {
-  const clientExists = Boolean(getClient());
+  const models = getConfiguredAiModels();
 
-  if (!clientExists) {
+  if (!models.length) {
     return fallbackDecision(context);
   }
 
-  try {
-    const first = await requestClaudeDecision(context, false);
-    const normalizedFirst = validateAndNormalizeDecision(first, context);
-    if (normalizedFirst) return normalizedFirst;
+  for (const providerConfig of models) {
+    try {
+      const first = await requestDecisionFromProvider(providerConfig, context, false);
+      const normalizedFirst = validateAndNormalizeDecision(first, context, providerConfig.provider);
+      if (normalizedFirst) return normalizedFirst;
 
-    const second = await requestClaudeDecision(context, true);
-    const normalizedSecond = validateAndNormalizeDecision(second, context);
-    if (normalizedSecond) return normalizedSecond;
-
-    return fallbackDecision(context);
-  } catch (error) {
-    console.error('Claude API failed:', error.message);
-    const fallback = fallbackDecision(context);
-    fallback.action = 'escalate';
-    fallback.leadUpdate.status = 'escalated';
-    fallback.activityLog = `Claude failed, escalated ${context?.lead?.name || 'lead'} for human follow-up`;
-    fallback.escalationReason = 'Claude API unavailable or invalid response';
-    return fallback;
+      const second = await requestDecisionFromProvider(providerConfig, context, true);
+      const normalizedSecond = validateAndNormalizeDecision(second, context, providerConfig.provider);
+      if (normalizedSecond) return normalizedSecond;
+    } catch (error) {
+      console.error(`${providerConfig.provider} API failed:`, error.message);
+    }
   }
+
+  const fallback = fallbackDecision(context);
+  fallback.activityLog = `AI providers unavailable, handled ${context?.lead?.name || 'lead'} via resilient fallback mode`;
+  return fallback;
 }
 
 module.exports = {
   MODEL,
   AGENT_SYSTEM_PROMPT,
   getAgentDecision,
+  getConfiguredAiModels,
 };

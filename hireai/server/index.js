@@ -40,6 +40,8 @@ io.on('connection', (socket) => {
 
 function connectionStatus() {
   const claudeConnected = Boolean(process.env.ANTHROPIC_API_KEY);
+  const openaiConnected = Boolean(process.env.OPENAI_API_KEY);
+  const geminiConnected = Boolean(process.env.GEMINI_API_KEY);
   const twilioConnected = Boolean(
     process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_NUMBER
   );
@@ -48,6 +50,8 @@ function connectionStatus() {
 
   return {
     claudeConnected,
+    openaiConnected,
+    geminiConnected,
     twilioConnected,
     gmailConnected,
     metaConnected,
@@ -62,7 +66,11 @@ function printStartupBanner() {
   // eslint-disable-next-line no-console
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━');
   // eslint-disable-next-line no-console
-  console.log(`${status.claudeConnected ? '✅' : '⚠️ '} Claude API: ${status.claudeConnected ? 'Connected' : 'Not configured (fallback mode)'}`);
+  console.log(`${status.claudeConnected ? '✅' : '⚠️ '} Claude API: ${status.claudeConnected ? 'Connected' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
+  console.log(`${status.openaiConnected ? '✅' : '⚠️ '} OpenAI API: ${status.openaiConnected ? 'Connected' : 'Not configured'}`);
+  // eslint-disable-next-line no-console
+  console.log(`${status.geminiConnected ? '✅' : '⚠️ '} Gemini API: ${status.geminiConnected ? 'Connected' : 'Not configured'}`);
   // eslint-disable-next-line no-console
   console.log('✅ Database: Ready');
   // eslint-disable-next-line no-console
