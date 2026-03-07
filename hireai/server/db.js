@@ -75,6 +75,7 @@ async function initDb() {
       password TEXT NOT NULL,
       twilioKey TEXT,
       gmailConfig TEXT,
+      metaConfig TEXT,
       agentPersonality TEXT,
       logoUrl TEXT,
       calendarConfig TEXT,
@@ -84,6 +85,7 @@ async function initDb() {
 
     CREATE TABLE IF NOT EXISTS leads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
       name TEXT NOT NULL,
       phone TEXT,
       email TEXT,
@@ -95,9 +97,15 @@ async function initDb() {
       location TEXT,
       propertyType TEXT,
       sentiment TEXT,
+      intent TEXT,
+      urgency TEXT,
+      stageHistory TEXT,
+      responseSlaMinutes INTEGER,
+      intelligenceSnapshot TEXT,
       aiPaused INTEGER DEFAULT 0,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS messages (
@@ -108,6 +116,11 @@ async function initDb() {
       content TEXT NOT NULL,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
       sentByAI INTEGER DEFAULT 0,
+      draftState TEXT DEFAULT 'sent',
+      confidence REAL,
+      riskFlags TEXT,
+      orchestratorDecision TEXT,
+      intelligenceSnapshot TEXT,
       externalSid TEXT,
       deliveryStatus TEXT DEFAULT 'sent',
       error TEXT,
@@ -129,13 +142,15 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS activity_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       leadId INTEGER,
+      userId INTEGER,
       leadName TEXT,
       action TEXT,
       channel TEXT,
       description TEXT,
       sentByAI INTEGER DEFAULT 0,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (leadId) REFERENCES leads (id) ON DELETE SET NULL
+      FOREIGN KEY (leadId) REFERENCES leads (id) ON DELETE SET NULL,
+      FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS blocked_contacts (
@@ -221,11 +236,22 @@ async function initDb() {
   await ensureColumn(database, 'leads', 'propertyType', 'TEXT');
   await ensureColumn(database, 'leads', 'sentiment', 'TEXT');
   await ensureColumn(database, 'leads', 'sessionId', 'TEXT');
+  await ensureColumn(database, 'leads', 'userId', 'INTEGER');
+  await ensureColumn(database, 'leads', 'intent', 'TEXT');
+  await ensureColumn(database, 'leads', 'urgency', 'TEXT');
+  await ensureColumn(database, 'leads', 'stageHistory', 'TEXT');
+  await ensureColumn(database, 'leads', 'responseSlaMinutes', 'INTEGER');
+  await ensureColumn(database, 'leads', 'intelligenceSnapshot', 'TEXT');
 
   await ensureColumn(database, 'messages', 'externalSid', 'TEXT');
   await ensureColumn(database, 'messages', 'deliveryStatus', "TEXT DEFAULT 'sent'");
   await ensureColumn(database, 'messages', 'error', 'TEXT');
   await ensureColumn(database, 'messages', 'metadata', 'TEXT');
+  await ensureColumn(database, 'messages', 'draftState', "TEXT DEFAULT 'sent'");
+  await ensureColumn(database, 'messages', 'confidence', 'REAL');
+  await ensureColumn(database, 'messages', 'riskFlags', 'TEXT');
+  await ensureColumn(database, 'messages', 'orchestratorDecision', 'TEXT');
+  await ensureColumn(database, 'messages', 'intelligenceSnapshot', 'TEXT');
 
   await ensureColumn(database, 'bookings', 'calendarEventId', 'TEXT');
   await ensureColumn(database, 'bookings', 'confirmedAt', 'TEXT');
@@ -246,6 +272,37 @@ async function initDb() {
   await ensureColumn(database, 'users', 'onboardingComplete', 'INTEGER DEFAULT 0');
   await ensureColumn(database, 'users', 'greetingMessage', 'TEXT');
   await ensureColumn(database, 'users', 'widgetColor', "TEXT DEFAULT '#6C63FF'");
+  await ensureColumn(database, 'users', 'metaConfig', 'TEXT');
+  await ensureColumn(database, 'activity_log', 'userId', 'INTEGER');
+
+  // Agent selector + team roles + integrations
+  await ensureColumn(database, 'users', 'selectedAgent', "TEXT DEFAULT 'salesbot'");
+  await ensureColumn(database, 'users', 'role', "TEXT DEFAULT 'admin'");
+  await ensureColumn(database, 'users', 'accentColor', "TEXT DEFAULT '#f97316'");
+  await ensureColumn(database, 'users', 'slackWebhook', 'TEXT');
+  await ensureColumn(database, 'users', 'notificationPrefs', "TEXT DEFAULT '{}'");
+
+  // Lead scoring
+  await ensureColumn(database, 'leads', 'leadScore', 'INTEGER DEFAULT 0');
+  await ensureColumn(database, 'leads', 'archived', 'INTEGER DEFAULT 0');
+
+  // Widget credentials — unique per account
+  await ensureColumn(database, 'users', 'widgetId', 'TEXT');
+  await ensureColumn(database, 'users', 'widgetSecret', 'TEXT');
+
+  // Back-fill widgetId + widgetSecret for existing users that don't have one yet
+  const crypto = require('crypto');
+  const usersWithoutWidget = await database.all("SELECT id FROM users WHERE widgetId IS NULL OR widgetId = ''");
+  for (const row of usersWithoutWidget) {
+    const widgetId = `wid_${crypto.randomBytes(12).toString('hex')}`;
+    const widgetSecret = `whsec_${crypto.randomBytes(20).toString('hex')}`;
+    await database.run('UPDATE users SET widgetId = ?, widgetSecret = ? WHERE id = ?', [widgetId, widgetSecret, row.id]);
+  }
+
+  await database.exec('CREATE INDEX IF NOT EXISTS idx_users_widget_id ON users (widgetId)');
+  await database.exec('CREATE INDEX IF NOT EXISTS idx_leads_user ON leads (userId)');
+  await database.exec('CREATE INDEX IF NOT EXISTS idx_messages_draft_state ON messages (draftState)');
+  await database.exec('CREATE INDEX IF NOT EXISTS idx_activity_log_user ON activity_log (userId, timestamp DESC, id DESC)');
 }
 
 module.exports = {

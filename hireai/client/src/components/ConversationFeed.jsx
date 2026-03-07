@@ -77,7 +77,7 @@ function MessageCard({ item }) {
             {isAI ? 'AI' : 'Manual'}
           </span>
         </div>
-        <p className="text-sm leading-relaxed">{item.content}</p>
+        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{item.content}</p>
       </article>
     );
   }
@@ -90,7 +90,7 @@ function MessageCard({ item }) {
           {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
-      <p className="text-sm leading-relaxed text-white/80">{item.content}</p>
+      <p className="text-sm leading-relaxed text-white/80 break-words whitespace-pre-wrap">{item.content}</p>
     </article>
   );
 }
@@ -116,9 +116,9 @@ export default function ConversationFeed({ messages, selectedLead, onLeadSelect,
   }, [filteredMessages.length]);
 
   return (
-    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card">
+    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card min-w-0">
       <header className="mb-4">
-        <h2 className="font-heading text-base font-semibold text-white">
+        <h2 className="font-heading text-base font-semibold text-white break-words">
           {selectedLead ? `${selectedLead.name} — Conversation` : 'Unified Conversation Feed'}
         </h2>
         <p className="font-mono text-[10px] uppercase tracking-widest text-white/30">
@@ -127,7 +127,7 @@ export default function ConversationFeed({ messages, selectedLead, onLeadSelect,
       </header>
 
       {/* Tabs */}
-      <div className="mb-4 flex flex-wrap gap-1">
+      <div className="mb-4 flex flex-wrap gap-1 min-w-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}

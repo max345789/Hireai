@@ -203,7 +203,7 @@ export default function Analytics() {
             </button>
 
             <Link
-              to="/"
+              to="/inbox"
               className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
             >
               <ArrowLeft className="h-3.5 w-3.5" />

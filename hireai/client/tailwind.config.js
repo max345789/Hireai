@@ -4,16 +4,38 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg:       'rgb(var(--bg-rgb) / <alpha-value>)',
-        card:     'rgb(var(--card-rgb) / <alpha-value>)',
-        surface:  'rgb(var(--surface-rgb) / <alpha-value>)',
-        textSoft: 'rgb(var(--textSoft-rgb) / <alpha-value>)',
-        accent:   'rgb(var(--accent-rgb) / <alpha-value>)',
+        bg:       '#090B12',
+        card:     '#111521',
+        surface:  '#141826',
+        textSoft: '#9298A8',
+        accent:   '#B6FF2E',
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
       },
       fontFamily: {
         heading: ['Sora', 'sans-serif'],
         body:    ['Inter', 'sans-serif'],
         mono:    ['IBM Plex Mono', 'monospace'],
+        sora:    ['Sora', 'sans-serif'],
       },
       boxShadow: {
         'xs':       '0 1px 2px rgba(0,0,0,0.4)',
@@ -41,6 +63,9 @@ export default {
         'scale-in':   'scaleIn 220ms cubic-bezier(0.16,1,0.3,1)',
         'float':      'float 6s ease-in-out infinite',
         'pulse-soft': 'pulseSoft 2.4s ease-in-out infinite',
+      },
+      transitionDuration: {
+        250: '250ms',
       },
       keyframes: {
         fadeIn: {

@@ -51,7 +51,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
   }
 
   return (
-    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card">
+    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card min-w-0">
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 border border-accent/20">
@@ -83,7 +83,7 @@ export default function BookingsPanel({ bookings: propBookings }) {
           </div>
         ) : (
           displayed.map((booking) => {
-            const { date, time } = formatDateTime(booking.dateTime);
+            const { time } = formatDateTime(booking.dateTime);
             const statusMeta = STATUS_META[booking.status] || STATUS_META.scheduled;
             const busy = actionId === booking.id;
 

@@ -3,22 +3,23 @@
  * Handles incoming messages from:
  *   - Facebook Messenger (object: "page")
  *   - Instagram DMs     (object: "instagram")
- *
- * Webhook setup in Meta Developer Console:
- *   Callback URL : https://your-domain.com/api/webhook/meta
- *   Verify Token : value of META_VERIFY_TOKEN env var
- *   Subscriptions: messages, messaging_postbacks
  */
 
 const express = require('express');
 const metaService = require('../services/metaService');
-const { processMessage } = require('../services/agentBrain');
+const { processInboundEvent } = require('../services/conversationPipeline');
 const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
 const WebhookEvent = require('../models/WebhookEvent');
 const IdempotencyKey = require('../models/IdempotencyKey');
 const logger = require('../services/logger');
+const {
+  findUserByMetaInbound,
+  findUserByMetaVerifyToken,
+  parseMetaConfig,
+} = require('../services/userIntegrationResolver');
 
 const router = express.Router();
 
@@ -26,11 +27,14 @@ function emit(io, event, payload) {
   if (io) io.emit(event, payload);
 }
 
-// ── GET /api/webhook/meta ──────────────────────────────────────────────────
-// Meta calls this once when you save the webhook URL in the developer console.
-router.get('/webhook/meta', (req, res) => {
-  const mode      = req.query['hub.mode'];
-  const token     = req.query['hub.verify_token'];
+async function resolveDefaultUserId() {
+  const user = await User.firstUser();
+  return user?.id || null;
+}
+
+router.get('/webhook/meta', async (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
   const result = metaService.verifyWebhook(mode, token, challenge);
@@ -40,14 +44,31 @@ router.get('/webhook/meta', (req, res) => {
     return res.status(200).send(result.challenge);
   }
 
-  logger.warn('meta_webhook_verification_failed', { mode, token });
-  return res.status(403).send('Forbidden');
+  try {
+    const user = await findUserByMetaVerifyToken(token);
+    if (!user) {
+      logger.warn('meta_webhook_verification_failed', { mode, token });
+      return res.status(403).send('Forbidden');
+    }
+
+    const cfg = parseMetaConfig(user.metaConfig);
+    const scoped = metaService.verifyWebhook(mode, token, challenge, {
+      verifyToken: cfg.verifyToken,
+    });
+
+    if (!scoped.ok) {
+      logger.warn('meta_webhook_verification_failed', { mode, token, userId: user.id });
+      return res.status(403).send('Forbidden');
+    }
+
+    logger.info('meta_webhook_verified_user_token', { mode, userId: user.id });
+    return res.status(200).send(scoped.challenge);
+  } catch {
+    return res.status(403).send('Forbidden');
+  }
 });
 
-// ── POST /api/webhook/meta ─────────────────────────────────────────────────
-// All incoming messages from Messenger and Instagram land here.
 router.post('/webhook/meta', async (req, res) => {
-  // Respond 200 immediately — Meta requires this within 5 seconds.
   res.status(200).json({ received: true });
 
   const io = req.app.get('io');
@@ -58,14 +79,12 @@ router.post('/webhook/meta', async (req, res) => {
   setImmediate(async () => {
     for (const msg of parsed) {
       if (!msg.senderId) continue;
+      const matchedUser = await findUserByMetaInbound({ pageId: msg.pageId });
+      const defaultUserId = matchedUser?.id || await resolveDefaultUserId();
 
-      // ── Idempotency guard ──────────────────────────────────────────────
-      const eventKey = (msg.mid || `${msg.channel}:${msg.senderId}:${msg.text || 'attachment'}`)
-        .slice(0, 200);
+      const eventKey = (msg.mid || `${msg.channel}:${msg.senderId}:${msg.text || 'attachment'}`).slice(0, 200);
 
-      const reservation = await IdempotencyKey.reserve(
-        `webhook:${msg.channel}`, eventKey, eventKey, 72
-      );
+      const reservation = await IdempotencyKey.reserve(`webhook:${msg.channel}`, eventKey, eventKey, 72);
 
       if (!reservation.created && reservation.row?.status !== 'failed') {
         logger.info('duplicate_meta_webhook_ignored', { channel: msg.channel, senderId: msg.senderId });
@@ -82,62 +101,69 @@ router.post('/webhook/meta', async (req, res) => {
       });
 
       try {
-        // ── Lead lookup / creation ─────────────────────────────────────
-        // Store senderId prefixed with channel so it won't collide with real phone numbers.
         const pseudoPhone = `${msg.channel}:${msg.senderId}`;
-        let lead = await Lead.findByContact({ phone: pseudoPhone, email: null, channel: msg.channel });
+        let lead = await Lead.findByContact({ phone: pseudoPhone, email: null, channel: msg.channel, userId: defaultUserId });
 
         if (!lead) {
-          const channelLabel = msg.channel === 'instagram' ? '📸 Instagram' : '💬 Messenger';
+          const channelLabel = msg.channel === 'instagram' ? 'Instagram' : 'Messenger';
           lead = await Lead.create({
-            name:      `${channelLabel} Lead`,
-            phone:     pseudoPhone,
-            email:     null,
-            channel:   msg.channel,
-            status:    'new',
+            userId: defaultUserId,
+            name: `${channelLabel} Lead`,
+            phone: pseudoPhone,
+            email: null,
+            channel: msg.channel,
+            status: 'new',
             sentiment: 'neutral',
           });
 
           emit(io, 'lead:updated', lead);
 
           const newActivity = await ActivityLog.create({
-            leadId:   lead.id,
+            leadId: lead.id,
+            userId: lead.userId || defaultUserId || null,
             leadName: lead.name,
-            action:   'replied',
-            channel:  msg.channel,
-            description: `🤖 New lead via ${msg.channel === 'instagram' ? 'Instagram DM' : 'Facebook Messenger'}`,
+            action: 'replied',
+            channel: msg.channel,
+            description: `New lead via ${channelLabel}`,
             sentByAI: true,
           });
           emit(io, 'agent:action', newActivity);
         }
 
-        // ── Non-text attachment ────────────────────────────────────────
+        if (lead && !lead.userId && defaultUserId) {
+          lead = await Lead.update(lead.id, { userId: defaultUserId });
+        }
+
         if (!msg.text) {
           const inMessage = await Message.create({
-            leadId:         lead.id,
-            direction:      'in',
-            channel:        msg.channel,
-            content:        `[${msg.channel === 'instagram' ? 'Instagram' : 'Messenger'} media received — review manually]`,
-            sentByAI:       false,
-            externalSid:    msg.mid,
+            leadId: lead.id,
+            direction: 'in',
+            channel: msg.channel,
+            content: `[${msg.channel} media received — review manually]`,
+            sentByAI: false,
+            draftState: 'received',
+            externalSid: msg.mid,
             deliveryStatus: 'received',
+            metadata: { source: 'webhook_meta', attachments: msg.attachments || [] },
           });
+
           emit(io, 'message:new', { ...inMessage, leadName: lead.name, leadStatus: lead.status });
 
           const activity = await ActivityLog.create({
-            leadId:   lead.id,
+            leadId: lead.id,
+            userId: lead.userId || defaultUserId || null,
             leadName: lead.name,
-            action:   'needs_human',
-            channel:  msg.channel,
-            description: `Media attachment from ${lead.name} on ${msg.channel} — requires manual review`,
+            action: 'needs_human',
+            channel: msg.channel,
+            description: `Media attachment from ${lead.name} on ${msg.channel}`,
             sentByAI: false,
           });
           emit(io, 'agent:action', activity);
           emit(io, 'agent:escalated', {
-            leadId:   lead.id,
+            leadId: lead.id,
             leadName: lead.name,
-            reason:   'Media attachment requires manual handling',
-            channel:  msg.channel,
+            reason: 'Media attachment requires manual handling',
+            channel: msg.channel,
           });
 
           await WebhookEvent.markProcessed(event.id);
@@ -145,44 +171,15 @@ router.post('/webhook/meta', async (req, res) => {
           continue;
         }
 
-        // ── Save inbound text message ──────────────────────────────────
-        const inMessage = await Message.create({
-          leadId:         lead.id,
-          direction:      'in',
-          channel:        msg.channel,
-          content:        msg.text,
-          sentByAI:       false,
-          externalSid:    msg.mid,
-          deliveryStatus: 'received',
+        await processInboundEvent({
+          io,
+          lead,
+          userId: lead.userId || defaultUserId,
+          channel: msg.channel,
+          message: msg.text,
+          externalSid: msg.mid,
+          metadata: { source: 'webhook_meta' },
         });
-        emit(io, 'message:new', { ...inMessage, leadName: lead.name, leadStatus: lead.status });
-
-        // ── Human takeover active — notify agent ───────────────────────
-        if (lead.aiPaused) {
-          const activity = await ActivityLog.create({
-            leadId:   lead.id,
-            leadName: lead.name,
-            action:   'needs_human',
-            channel:  msg.channel,
-            description: `New ${msg.channel} message from ${lead.name} while human takeover is active`,
-            sentByAI: false,
-          });
-          emit(io, 'agent:action', activity);
-          emit(io, 'agent:escalated', {
-            leadId:   lead.id,
-            leadName: lead.name,
-            reason:   'Human takeover active',
-            channel:  msg.channel,
-          });
-
-          await WebhookEvent.markProcessed(event.id);
-          await IdempotencyKey.complete(reservation.row.id, 200, JSON.stringify({ ok: true }));
-          continue;
-        }
-
-        // ── Run AI agent ───────────────────────────────────────────────
-        const history = await Message.getByLeadId(lead.id);
-        await processMessage(msg.text, lead, history.slice(-10), { io, channel: msg.channel });
 
         await WebhookEvent.markProcessed(event.id);
         await IdempotencyKey.complete(reservation.row.id, 200, JSON.stringify({ ok: true }));

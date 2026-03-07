@@ -38,11 +38,19 @@ function parseTimestamp(value) {
 class ActivityLog {
   static async create(data) {
     const db = await getDb();
+    let userId = data.userId || null;
+
+    if (!userId && data.leadId) {
+      const lead = await db.get('SELECT userId FROM leads WHERE id = ? LIMIT 1', [data.leadId]);
+      userId = lead?.userId || null;
+    }
+
     const result = await db.run(
-      `INSERT INTO activity_log (leadId, leadName, action, channel, description, sentByAI)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activity_log (leadId, userId, leadName, action, channel, description, sentByAI)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         data.leadId || null,
+        userId,
         data.leadName || null,
         data.action || 'replied',
         data.channel || 'web',
@@ -60,20 +68,49 @@ class ActivityLog {
     return normalize(row);
   }
 
-  static async recent(limit = 100) {
+  static async recent(limit = 100, userId = null) {
     const db = await getDb();
-    const rows = await db.all(
-      'SELECT * FROM activity_log ORDER BY timestamp DESC, id DESC LIMIT ?',
-      [limit]
-    );
+    let rows;
+
+    if (userId) {
+      rows = await db.all(
+        `SELECT a.*
+         FROM activity_log a
+         LEFT JOIN leads l ON l.id = a.leadId
+         WHERE a.userId = ? OR (a.userId IS NULL AND l.userId = ?)
+         ORDER BY a.timestamp DESC, a.id DESC
+         LIMIT ?`,
+        [userId, userId, limit]
+      );
+    } else {
+      rows = await db.all(
+        'SELECT * FROM activity_log ORDER BY timestamp DESC, id DESC LIMIT ?',
+        [limit]
+      );
+    }
+
     return rows.map(normalize);
   }
 
-  static async todayStats() {
+  static async todayStats(userId = null) {
     const db = await getDb();
-    const rows = await db.all(
-      'SELECT action, timestamp FROM activity_log ORDER BY timestamp DESC LIMIT 4000'
-    );
+    let rows;
+
+    if (userId) {
+      rows = await db.all(
+        `SELECT a.action, a.timestamp
+         FROM activity_log a
+         LEFT JOIN leads l ON l.id = a.leadId
+         WHERE a.userId = ? OR (a.userId IS NULL AND l.userId = ?)
+         ORDER BY a.timestamp DESC
+         LIMIT 4000`,
+        [userId, userId]
+      );
+    } else {
+      rows = await db.all(
+        'SELECT action, timestamp FROM activity_log ORDER BY timestamp DESC LIMIT 4000'
+      );
+    }
 
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(

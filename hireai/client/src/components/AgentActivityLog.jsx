@@ -24,7 +24,7 @@ function fmt(ts) {
 
 export default function AgentActivityLog({ items }) {
   return (
-    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card">
+    <section className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5 shadow-card min-w-0">
       <header className="mb-4">
         <h2 className="font-heading text-base font-semibold text-white">Agent Activity</h2>
         <p className="font-mono text-[10px] uppercase tracking-widest text-white/30">Real-time AI actions timeline</p>
@@ -65,7 +65,7 @@ export default function AgentActivityLog({ items }) {
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs leading-snug text-white/70">{item.description || item.message}</p>
+                    <p className="text-xs leading-snug text-white/70 break-words">{item.description || item.message}</p>
                     <p className="mt-0.5 font-mono text-[10px] text-white/30">{fmt(item.timestamp || item.createdAt)}</p>
                   </div>
                 </div>

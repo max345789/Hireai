@@ -20,7 +20,8 @@
 - Set inbound email parse provider (SendGrid/Mailgun) to live webhook URL
 - Configure SPF, DKIM, DMARC for email sending domain
 - Configure production CORS allowlist (`CORS_ORIGINS`)
-- Rotate demo user credentials and disable demo password flow
+- Ensure `BOOTSTRAP_ADMIN_ON_START=false` (no automatic admin creation)
+- Ensure `ALLOW_MOCK_DELIVERY=false` (no simulated outbound sends)
 - Enable external monitoring/alerts (uptime, error tracking)
 - Run staging UAT with real channels and sign-off
 

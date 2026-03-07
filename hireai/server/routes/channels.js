@@ -7,6 +7,11 @@ const WidgetSession = require('../models/WidgetSession');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 const { asString, asEmail, asEnum } = require('../utils/validate');
+const {
+  parseTwilioConfig,
+  parseGmailConfig,
+  parseMetaConfig,
+} = require('../services/userIntegrationResolver');
 
 const router = express.Router();
 
@@ -26,45 +31,46 @@ function formatAgo(timestamp) {
   return `${Math.floor(diffHours / 24)} day ago`;
 }
 
-async function getLastChannelMessage(channel) {
-  const items = await Message.recentFeed(400);
-  return items.find((item) => (channel === 'web' ? item.channel === 'web' || item.channel === 'webchat' : item.channel === channel));
-}
-
 router.get('/channels/status', requireAuth, async (_req, res) => {
-  const user = await User.firstUser();
+  const user = await User.getById(_req.user.id);
   const webActive = await WidgetSession.countActive();
   const webTotal = await WidgetSession.totalCount();
+  const recent = await Message.recentFeed(600, _req.user.id);
 
-  const lastWhatsapp = await getLastChannelMessage('whatsapp');
-  const lastEmail = await getLastChannelMessage('email');
+  const lastWhatsapp = recent.find((item) => item.channel === 'whatsapp');
+  const lastEmail = recent.find((item) => item.channel === 'email');
+  const lastInstagram = recent.find((item) => item.channel === 'instagram');
+  const lastMessenger = recent.find((item) => item.channel === 'messenger');
+  const lastWeb = recent.find((item) => item.channel === 'web' || item.channel === 'webchat');
 
-  const lastInstagram = await getLastChannelMessage('instagram');
-  const lastMessenger = await getLastChannelMessage('messenger');
+  const twilioConfig = parseTwilioConfig(user?.twilioKey);
+  const gmailConfig = parseGmailConfig(user?.gmailConfig);
+  const metaConfig = parseMetaConfig(user?.metaConfig);
 
   res.json({
     whatsapp: {
-      configured: twilioService.isConfigured() || Boolean(user?.twilioKey),
-      number: process.env.TWILIO_WHATSAPP_NUMBER || user?.twilioKey || null,
+      configured: twilioService.isConfigured(twilioConfig) || Boolean(twilioConfig?.whatsappNumber || user?.twilioKey),
+      number: twilioConfig?.whatsappNumber || process.env.TWILIO_WHATSAPP_NUMBER || null,
       lastMessage: lastWhatsapp ? formatAgo(lastWhatsapp.timestamp) : 'never',
     },
     email: {
-      configured: emailService.isConfigured() || Boolean(user?.gmailConfig),
-      address: process.env.GMAIL_USER || user?.email || null,
+      configured: emailService.isConfigured(gmailConfig) || Boolean(gmailConfig?.smtpUser || user?.gmailConfig),
+      address: gmailConfig?.smtpUser || process.env.GMAIL_USER || user?.email || null,
       lastMessage: lastEmail ? formatAgo(lastEmail.timestamp) : 'never',
     },
     web: {
       configured: true,
       activeSessions: webActive,
       totalChats: webTotal,
+      lastMessage: lastWeb ? formatAgo(lastWeb.timestamp) : 'never',
     },
     instagram: {
-      configured: metaService.isConfigured(),
+      configured: metaService.isConfigured(metaConfig) || Boolean(metaConfig?.accessToken),
       lastMessage: lastInstagram ? formatAgo(lastInstagram.timestamp) : 'never',
       webhookUrl: '/api/webhook/meta',
     },
     messenger: {
-      configured: metaService.isConfigured(),
+      configured: metaService.isConfigured(metaConfig) || Boolean(metaConfig?.accessToken),
       lastMessage: lastMessenger ? formatAgo(lastMessenger.timestamp) : 'never',
       webhookUrl: '/api/webhook/meta',
     },
@@ -75,16 +81,22 @@ router.post('/channels/test/:channel', requireAuth, async (req, res) => {
   try {
     const channel = asEnum(req.params.channel, 'channel', ['whatsapp', 'email', 'web'], { required: true });
     const toRaw = asString(req.body?.to, 'to', { max: 320 });
+    const user = await User.getById(req.user.id);
+    const twilioConfig = parseTwilioConfig(user?.twilioKey);
+    const gmailConfig = parseGmailConfig(user?.gmailConfig);
 
     if (channel === 'whatsapp') {
       const to = asString(toRaw, 'to', { required: true, min: 7, max: 32 });
-      const result = await twilioService.sendWhatsApp(to, 'HireAI test message: WhatsApp integration is active.');
+      const result = await twilioService.sendWhatsApp(
+        to,
+        'HireAI test message: WhatsApp integration is active.',
+        twilioConfig
+      );
       return res.json({ channel, result });
     }
 
     if (channel === 'email') {
       const to = asEmail(toRaw, 'to', { required: true });
-      const user = await User.firstUser();
       const result = await emailService.send(
         to,
         'HireAI Test Email',
@@ -93,6 +105,8 @@ router.post('/channels/test/:channel', requireAuth, async (req, res) => {
         {
           agencyName: user?.agencyName || 'HireAI Realty',
           agencyLogo: user?.logoUrl || null,
+          smtpUser: gmailConfig?.smtpUser || null,
+          smtpPass: gmailConfig?.smtpPass || null,
         }
       );
       return res.json({ channel, result });

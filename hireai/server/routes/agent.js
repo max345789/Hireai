@@ -2,11 +2,9 @@ const express = require('express');
 const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
-const { processMessage } = require('../services/agentBrain');
+const User = require('../models/User');
+const { processInboundEvent, dispatchOutbound } = require('../services/conversationPipeline');
 const { requireAuth } = require('../middleware/auth');
-const twilioService = require('../services/twilioService');
-const emailService = require('../services/emailService');
-const { validateInbound } = require('../services/channelGuard');
 const { idempotency } = require('../middleware/idempotency');
 const { asString, asEnum, asInteger, asEmail, asPhone, safeLimit } = require('../utils/validate');
 
@@ -28,28 +26,7 @@ async function emitAgentAction(io, payload) {
   return activity;
 }
 
-async function dispatchOutbound(lead, channel, content) {
-  if (!content) return { success: true, mocked: true, sid: null };
-
-  if (channel === 'whatsapp' && lead.phone) {
-    return twilioService.sendWhatsApp(lead.phone, content);
-  }
-
-  if (channel === 'sms' && lead.phone) {
-    return twilioService.sendSMS(lead.phone, content);
-  }
-
-  if (channel === 'email' && lead.email) {
-    return emailService.send(lead.email, 'Property Update', content, content, {
-      agencyName: 'HireAI Realty',
-      agencyLogo: null,
-    });
-  }
-
-  return { success: true, mocked: true, sid: null };
-}
-
-async function findOrCreateLead({ leadId, name, phone, email, channel, io }) {
+async function findOrCreateLead({ leadId, userId, name, phone, email, channel, io }) {
   let lead = null;
   if (leadId) {
     lead = await Lead.getById(leadId);
@@ -63,11 +40,13 @@ async function findOrCreateLead({ leadId, name, phone, email, channel, io }) {
       phone: normalizedPhone,
       email: normalizedEmail,
       channel,
+      userId,
     });
   }
 
   if (!lead) {
     lead = await Lead.create({
+      userId,
       name: name || 'New Lead',
       phone: normalizedPhone,
       email: normalizedEmail,
@@ -88,101 +67,11 @@ async function findOrCreateLead({ leadId, name, phone, email, channel, io }) {
     });
   }
 
+  if (!lead.userId && userId) {
+    lead = await Lead.update(lead.id, { userId });
+  }
+
   return lead;
-}
-
-async function processIncoming({ io, message, channel, lead }) {
-  const guard = await validateInbound({
-    lead,
-    phone: lead.phone,
-    content: message,
-  });
-
-  if (!guard.ok) {
-    const reasonText =
-      guard.reason === 'opt_out'
-        ? `${lead.name} opted out of automated messages`
-        : guard.reason === 'opt_in_ack'
-          ? `${lead.name} opted back in to messaging`
-          : `Inbound blocked (${guard.reason}) for ${lead.name}`;
-
-    const isActionable = !['duplicate', 'rate_limited', 'opt_out', 'opt_in_ack'].includes(guard.reason);
-
-    await emitAgentAction(io, {
-      leadId: lead.id,
-      leadName: lead.name,
-      action: isActionable ? 'needs_human' : 'replied',
-      channel,
-      description: reasonText,
-      sentByAI: false,
-    });
-
-    return {
-      blocked: true,
-      reason: guard.reason,
-      lead,
-    };
-  }
-
-  const inMessage = await Message.create({
-    leadId: lead.id,
-    direction: 'in',
-    channel,
-    content: message,
-    sentByAI: false,
-    deliveryStatus: 'received',
-    metadata: { source: 'agent_process' },
-  });
-
-  io.emit('message:new', {
-    ...inMessage,
-    leadName: lead.name,
-    leadStatus: lead.status,
-    icon: '👤',
-  });
-
-  if (lead.aiPaused) {
-    const activity = await emitAgentAction(io, {
-      leadId: lead.id,
-      leadName: lead.name,
-      action: 'needs_human',
-      channel,
-      description: `Conversation paused for ${lead.name}; human agent handling this thread`,
-      sentByAI: false,
-    });
-
-    io.emit('agent:escalated', {
-      leadId: lead.id,
-      leadName: lead.name,
-      reason: 'AI is paused for this conversation',
-      channel,
-    });
-
-    return {
-      paused: true,
-      lead,
-      inMessage,
-      activity,
-    };
-  }
-
-  const history = await Message.getByLeadId(lead.id);
-  const result = await processMessage(
-    guard.profanity ? `${message}\n\n[system: profanity detected, escalate to human]` : message,
-    lead,
-    history.slice(-10),
-    {
-      io,
-      channel,
-    }
-  );
-
-  return {
-    paused: false,
-    lead: result.lead,
-    inMessage,
-    result,
-  };
 }
 
 router.post('/agent/process', requireAuth, idempotency({ scope: (req) => `agent:process:${req.body?.leadId || req.body?.phone || 'new'}` }), async (req, res) => {
@@ -190,7 +79,7 @@ router.post('/agent/process', requireAuth, idempotency({ scope: (req) => `agent:
     const io = req.app.get('io');
     const leadId = asInteger(req.body?.leadId, 'leadId', { min: 1, fallback: null });
     const message = asString(req.body?.message, 'message', { required: true, min: 1, max: 5000 });
-    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual', 'instagram', 'messenger'], {
       fallback: 'web',
     });
     const name = asString(req.body?.name, 'name', { max: 150 });
@@ -199,6 +88,7 @@ router.post('/agent/process', requireAuth, idempotency({ scope: (req) => `agent:
 
     const lead = await findOrCreateLead({
       leadId,
+      userId: req.user.id,
       name,
       phone,
       email,
@@ -206,11 +96,13 @@ router.post('/agent/process', requireAuth, idempotency({ scope: (req) => `agent:
       io,
     });
 
-    const output = await processIncoming({
+    const output = await processInboundEvent({
       io,
-      message,
-      channel,
       lead,
+      userId: req.user.id,
+      channel,
+      message,
+      metadata: { source: 'agent_process' },
     });
 
     return res.json(output);
@@ -227,10 +119,12 @@ router.post('/agent/takeover/:leadId', requireAuth, async (req, res) => {
   try {
     const io = req.app.get('io');
     const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
-    const lead = await Lead.setAiPaused(leadId, true);
-    if (!lead) {
+    const existing = await Lead.getById(leadId);
+    if (!existing || (existing.userId && Number(existing.userId) !== Number(req.user.id))) {
       return res.status(404).json({ error: 'Lead not found' });
     }
+
+    const lead = await Lead.setAiPaused(leadId, true);
 
     io.emit('lead:updated', lead);
 
@@ -257,11 +151,12 @@ router.post('/agent/handback/:leadId', requireAuth, async (req, res) => {
   try {
     const io = req.app.get('io');
     const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
-    const lead = await Lead.setAiPaused(leadId, false);
-
-    if (!lead) {
+    const existing = await Lead.getById(leadId);
+    if (!existing || (existing.userId && Number(existing.userId) !== Number(req.user.id))) {
       return res.status(404).json({ error: 'Lead not found' });
     }
+
+    const lead = await Lead.setAiPaused(leadId, false);
 
     const resumeMessage =
       'Thanks for your patience. I can continue from where we left off and help you with the next best options. What would you like to prioritize now?';
@@ -272,16 +167,19 @@ router.post('/agent/handback/:leadId', requireAuth, async (req, res) => {
       channel: lead.channel,
       content: resumeMessage,
       sentByAI: true,
+      draftState: 'sending',
       deliveryStatus: 'queued',
       metadata: { source: 'handback' },
     });
 
-    const sendResult = await dispatchOutbound(lead, lead.channel, resumeMessage);
+    const user = await User.getById(req.user.id);
+    const sendResult = await dispatchOutbound(lead.channel, lead, resumeMessage, user);
 
     outMessage = await Message.updateDelivery(outMessage.id, {
       externalSid: sendResult.sid || null,
       deliveryStatus: sendResult.success === false ? 'failed' : 'sent',
       error: sendResult.error || null,
+      draftState: sendResult.success === false ? 'failed' : 'sent',
     });
 
     io.emit('lead:updated', lead);
@@ -312,7 +210,7 @@ router.post('/agent/handback/:leadId', requireAuth, async (req, res) => {
 });
 
 router.get('/agent/status', requireAuth, async (_req, res) => {
-  const today = await ActivityLog.todayStats();
+  const today = await ActivityLog.todayStats(_req.user.id);
 
   return res.json({
     active: true,
@@ -330,12 +228,13 @@ router.post('/simulate/message', requireAuth, idempotency({ scope: (req) => `sim
     const phone = asPhone(req.body?.phone, 'phone');
     const email = asEmail(req.body?.email, 'email');
     const message = asString(req.body?.message, 'message', { required: true, min: 1, max: 5000 });
-    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual', 'instagram', 'messenger'], {
       fallback: 'whatsapp',
     });
 
     const lead = await findOrCreateLead({
       leadId,
+      userId: req.user.id,
       name: name || 'Simulation Lead',
       phone,
       email,
@@ -343,11 +242,13 @@ router.post('/simulate/message', requireAuth, idempotency({ scope: (req) => `sim
       io,
     });
 
-    const output = await processIncoming({
+    const output = await processInboundEvent({
       io,
-      message,
-      channel,
       lead,
+      userId: req.user.id,
+      channel,
+      message,
+      metadata: { source: 'simulation' },
     });
 
     return res.json({
@@ -365,7 +266,7 @@ router.post('/simulate/message', requireAuth, idempotency({ scope: (req) => `sim
 
 router.get('/activity-log', requireAuth, async (req, res) => {
   const limit = safeLimit(req.query.limit, 100, 300);
-  const items = await ActivityLog.recent(limit);
+  const items = await ActivityLog.recent(limit, req.user.id);
   return res.json({ items });
 });
 

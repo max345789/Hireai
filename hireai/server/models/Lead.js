@@ -4,9 +4,10 @@ class Lead {
   static async create(data) {
     const db = await getDb();
     const result = await db.run(
-      `INSERT INTO leads (name, phone, email, sessionId, channel, status, budget, timeline, location, propertyType, sentiment, aiPaused)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO leads (userId, name, phone, email, sessionId, channel, status, budget, timeline, location, propertyType, sentiment, intent, urgency, stageHistory, responseSlaMinutes, intelligenceSnapshot, aiPaused)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        data.userId || null,
         data.name || 'Unknown Lead',
         data.phone || null,
         data.email || null,
@@ -18,6 +19,11 @@ class Lead {
         data.location || null,
         data.propertyType || null,
         data.sentiment || 'neutral',
+        data.intent || null,
+        data.urgency || null,
+        data.stageHistory ? JSON.stringify(data.stageHistory) : null,
+        data.responseSlaMinutes ?? null,
+        data.intelligenceSnapshot ? JSON.stringify(data.intelligenceSnapshot) : null,
         data.aiPaused ? 1 : 0,
       ]
     );
@@ -25,55 +31,111 @@ class Lead {
     return this.getById(result.lastID);
   }
 
+  static parseRow(row) {
+    if (!row) return row;
+    return {
+      ...row,
+      stageHistory: this.parseJson(row.stageHistory, []),
+      intelligenceSnapshot: this.parseJson(row.intelligenceSnapshot, null),
+    };
+  }
+
+  static parseJson(value, fallback) {
+    if (!value) return fallback;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+
   static async getById(id) {
     const db = await getDb();
-    return db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    const row = await db.get('SELECT * FROM leads WHERE id = ?', [id]);
+    return this.parseRow(row);
   }
 
   static async findBySessionId(sessionId) {
     const db = await getDb();
-    return db.get('SELECT * FROM leads WHERE sessionId = ? ORDER BY id DESC LIMIT 1', [sessionId]);
+    const row = await db.get('SELECT * FROM leads WHERE sessionId = ? ORDER BY id DESC LIMIT 1', [sessionId]);
+    return this.parseRow(row);
   }
 
-  static async findByContact({ phone, email, channel }) {
+  static async findByContact({ phone, email, channel, userId = null }) {
     const db = await getDb();
+    const scopedUserId = userId ? Number(userId) : null;
 
     if (phone) {
+      const params = channel ? [phone, channel] : [phone];
+      let query = channel
+        ? 'SELECT * FROM leads WHERE phone = ? AND channel = ?'
+        : 'SELECT * FROM leads WHERE phone = ?';
+      if (scopedUserId) {
+        query += ' AND userId = ?';
+        params.push(scopedUserId);
+      }
+      query += ' ORDER BY id DESC LIMIT 1';
+
       const byPhone = await db.get(
-        channel
-          ? 'SELECT * FROM leads WHERE phone = ? AND channel = ? ORDER BY id DESC LIMIT 1'
-          : 'SELECT * FROM leads WHERE phone = ? ORDER BY id DESC LIMIT 1',
-        channel ? [phone, channel] : [phone]
+        query,
+        params
       );
-      if (byPhone) return byPhone;
+      if (byPhone) return this.parseRow(byPhone);
     }
 
     if (email) {
-      return db.get(
-        channel
-          ? 'SELECT * FROM leads WHERE email = ? AND channel = ? ORDER BY id DESC LIMIT 1'
-          : 'SELECT * FROM leads WHERE email = ? ORDER BY id DESC LIMIT 1',
-        channel ? [email, channel] : [email]
+      const params = channel ? [email, channel] : [email];
+      let query = channel
+        ? 'SELECT * FROM leads WHERE email = ? AND channel = ?'
+        : 'SELECT * FROM leads WHERE email = ?';
+      if (scopedUserId) {
+        query += ' AND userId = ?';
+        params.push(scopedUserId);
+      }
+      query += ' ORDER BY id DESC LIMIT 1';
+
+      const byEmail = await db.get(
+        query,
+        params
       );
+      return this.parseRow(byEmail);
     }
 
     return null;
   }
 
-  static async allWithLastMessage() {
+  static async allWithLastMessage(userId = null) {
     const db = await getDb();
-    return db.all(
+    const params = [];
+    const where = userId ? 'WHERE l.userId = ?' : '';
+    if (userId) params.push(userId);
+
+    const rows = await db.all(
       `SELECT
          l.*,
          m.content AS lastMessage,
          m.timestamp AS lastMessageAt,
-         m.deliveryStatus AS lastMessageDeliveryStatus
+         m.deliveryStatus AS lastMessageDeliveryStatus,
+         m.draftState AS lastMessageDraftState,
+         m.confidence AS lastMessageConfidence,
+         m.riskFlags AS lastMessageRiskFlags,
+         m.orchestratorDecision AS lastMessageOrchestratorDecision,
+         m.intelligenceSnapshot AS lastMessageIntelligenceSnapshot
        FROM leads l
        LEFT JOIN messages m ON m.id = (
          SELECT id FROM messages WHERE leadId = l.id ORDER BY timestamp DESC, id DESC LIMIT 1
        )
-       ORDER BY COALESCE(m.timestamp, l.createdAt) DESC`
+       ${where}
+       ORDER BY COALESCE(m.timestamp, l.createdAt) DESC`,
+      params
     );
+
+    return rows.map((row) => this.parseRow(row)).map((row) => ({
+      ...row,
+      lastMessageRiskFlags: this.parseJson(row.lastMessageRiskFlags, []),
+      lastMessageOrchestratorDecision: this.parseJson(row.lastMessageOrchestratorDecision, null),
+      lastMessageIntelligenceSnapshot: this.parseJson(row.lastMessageIntelligenceSnapshot, null),
+    }));
   }
 
   static async update(id, updates) {
@@ -82,6 +144,7 @@ class Lead {
     if (!current) return null;
 
     const next = {
+      userId: updates.userId ?? current.userId,
       name: updates.name ?? current.name,
       phone: updates.phone ?? current.phone,
       email: updates.email ?? current.email,
@@ -93,14 +156,20 @@ class Lead {
       location: updates.location ?? current.location,
       propertyType: updates.propertyType ?? current.propertyType,
       sentiment: updates.sentiment ?? current.sentiment,
+      intent: updates.intent ?? current.intent,
+      urgency: updates.urgency ?? current.urgency,
+      stageHistory: updates.stageHistory ?? current.stageHistory,
+      responseSlaMinutes: updates.responseSlaMinutes ?? current.responseSlaMinutes,
+      intelligenceSnapshot: updates.intelligenceSnapshot ?? current.intelligenceSnapshot,
       aiPaused: updates.aiPaused ?? current.aiPaused,
     };
 
     await db.run(
       `UPDATE leads
-       SET name = ?, phone = ?, email = ?, sessionId = ?, channel = ?, status = ?, budget = ?, timeline = ?, location = ?, propertyType = ?, sentiment = ?, aiPaused = ?, updatedAt = CURRENT_TIMESTAMP
+       SET userId = ?, name = ?, phone = ?, email = ?, sessionId = ?, channel = ?, status = ?, budget = ?, timeline = ?, location = ?, propertyType = ?, sentiment = ?, intent = ?, urgency = ?, stageHistory = ?, responseSlaMinutes = ?, intelligenceSnapshot = ?, aiPaused = ?, updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
+        next.userId,
         next.name,
         next.phone,
         next.email,
@@ -112,6 +181,11 @@ class Lead {
         next.location,
         next.propertyType,
         next.sentiment,
+        next.intent,
+        next.urgency,
+        next.stageHistory ? JSON.stringify(next.stageHistory) : null,
+        next.responseSlaMinutes,
+        next.intelligenceSnapshot ? JSON.stringify(next.intelligenceSnapshot) : null,
         next.aiPaused,
         id,
       ]

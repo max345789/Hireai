@@ -9,6 +9,7 @@ import LeadPipeline from '../components/LeadPipeline';
 import AgentActivityLog from '../components/AgentActivityLog';
 import BookingsPanel from '../components/BookingsPanel';
 import TakeoverButton from '../components/TakeoverButton';
+import AgentSelector from '../components/AgentSelector';
 import { apiRequest, clearToken } from '../lib/api';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 
@@ -31,17 +32,23 @@ const STAT_CONFIG = [
 
 function StatCard({ label, value, icon: Icon, color, bg, border }) {
   return (
-    <div className={`flex items-center gap-3 rounded-2xl border ${border} ${bg} px-4 py-3.5`}>
+    <div className={`flex items-center gap-3 rounded-2xl border ${border} ${bg} px-4 py-3.5 min-w-0`}>
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/[0.07]">
         <Icon className={`h-4 w-4 ${color}`} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className={`font-heading tabular-nums text-xl font-bold leading-none ${color}`}>{value}</p>
-        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-white/30">{label}</p>
+        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-white/30 truncate">{label}</p>
       </div>
     </div>
   );
 }
+
+const AGENT_COLORS = {
+  salesbot: 'text-orange-400',
+  bookingbot: 'text-blue-400',
+  nurturebot: 'text-violet-400',
+};
 
 export default function Dashboard({ onLogout, user }) {
   const [leads, setLeads] = useState([]);
@@ -54,6 +61,8 @@ export default function Dashboard({ onLogout, user }) {
   const [agentStatus, setAgentStatus] = useState({ active: true, messagesProcessed: 0, leadsQualified: 0, bookingsMade: 0 });
   const [todayStats, setTodayStats] = useState({ whatsapp: 0, email: 0, web: 0, aiReplies: 0, qualified: 0, booked: 0 });
   const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [activeAgent, setActiveAgent] = useState(user?.selectedAgent || null);
+  const [showAgentSelector, setShowAgentSelector] = useState(false);
   const [manualReply, setManualReply] = useState('');
   const [incomingText, setIncomingText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -172,6 +181,10 @@ export default function Dashboard({ onLogout, user }) {
         setTodayStats(analyticsData || { whatsapp: 0, email: 0, web: 0, aiReplies: 0, qualified: 0, booked: 0 });
         setChannelStatus(channelStatusData || null);
         if ((leadData.leads || []).length > 0) setSelectedLeadId((leadData.leads || [])[0].id);
+        // Show agent selector if no agent selected yet
+        const currentAgent = settingsData?.settings?.selectedAgent || user?.selectedAgent;
+        if (!currentAgent) setShowAgentSelector(true);
+        else setActiveAgent(currentAgent);
       } catch (loadError) {
         setError(loadError.message);
       } finally {
@@ -334,23 +347,38 @@ export default function Dashboard({ onLogout, user }) {
       {/* Subtle noise texture matching the landing page */}
       <div className="noise-overlay" />
 
-      <div className="relative z-10 p-3 sm:p-5">
+      <div className="relative z-10 p-3 sm:p-5 2xl:mx-auto 2xl:max-w-[2200px]">
 
         {/* ── Header ── */}
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/[0.08] bg-[#111521] px-5 py-4">
-          <div>
-            <h1 className="font-heading text-xl font-bold text-white">{user?.agencyName || 'HireAI Workspace'}</h1>
-            <p className="mt-0.5 font-mono text-xs tracking-widest text-white/30">AI OPERATIONS · REAL ESTATE · LIVE</p>
+        <header className="mb-3 flex flex-wrap items-start sm:items-center justify-between gap-3 rounded-3xl border border-white/[0.08] bg-[#111521] px-5 py-4">
+          <div className="min-w-0">
+            <h1 className="font-heading text-xl font-bold text-white break-words">{user?.agencyName || 'HireAI Workspace'}</h1>
+            <p className="mt-0.5 font-mono text-xs tracking-widest text-white/30 break-words">AI OPERATIONS · REAL ESTATE · LIVE</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full sm:w-auto flex-wrap items-center gap-2">
+            {/* Active agent badge */}
+            {activeAgent && (
+              <button
+                type="button"
+                onClick={() => setShowAgentSelector(true)}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-xs font-semibold transition hover:bg-white/[0.08] ${AGENT_COLORS[activeAgent] || 'text-accent'}`}
+              >
+                <Bot className="h-3.5 w-3.5" />
+                {activeAgent === 'salesbot' ? 'Aria' : activeAgent === 'bookingbot' ? 'Cal' : 'Ivy'}
+              </button>
+            )}
+
             {/* Agent status */}
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] sm:text-xs font-semibold text-emerald-400 min-w-0">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
-              Agent Active · {activeCount} running · {agentStatus.messagesProcessed || 0} today
+              <span className="truncate">
+                Agent Active · {activeCount} running
+                <span className="hidden sm:inline"> · {agentStatus.messagesProcessed || 0} today</span>
+              </span>
             </span>
 
             {/* Alerts */}
@@ -370,7 +398,7 @@ export default function Dashboard({ onLogout, user }) {
               </button>
 
               {showAlerts && (
-                <div className="absolute right-0 z-30 mt-2 w-80 rounded-3xl border border-white/[0.08] bg-[#111521] p-2 shadow-card2 animate-fade-in">
+                <div className="absolute right-0 z-30 mt-2 w-[min(92vw,20rem)] rounded-3xl border border-white/[0.08] bg-[#111521] p-2 shadow-card2 animate-fade-in">
                   {alerts.length === 0 ? (
                     <p className="p-4 text-center font-mono text-xs text-white/30">No alerts yet</p>
                   ) : (
@@ -439,19 +467,19 @@ export default function Dashboard({ onLogout, user }) {
         )}
 
         {/* ── Main grid ── */}
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[260px_1fr_440px]">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)_minmax(320px,520px)] 2xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)_minmax(360px,600px)]">
 
           {/* Sidebar */}
-          <div className="min-h-[50vh]">
-            <Sidebar settings={settings} channelStatus={channelStatus} agentActiveCount={activeCount} totalLeads={leads.length} />
+          <div className="min-h-[50vh] min-w-0">
+            <Sidebar settings={settings} channelStatus={channelStatus} agentActiveCount={activeCount} totalLeads={leads.length} activeAgent={activeAgent} />
           </div>
 
           {/* Centre column */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {/* Controls card */}
             <div className="rounded-3xl border border-white/[0.08] bg-[#111521] p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <p className="font-heading font-semibold text-white">Conversation Controls</p>
                   <p className="font-mono text-xs tracking-wider text-white/30">QUICK-PROCESS OR REPLY MANUALLY</p>
                 </div>
@@ -461,7 +489,7 @@ export default function Dashboard({ onLogout, user }) {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-white/30">Run AI on selected lead</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 min-w-0">
                     <input
                       value={incomingText}
                       onChange={(e) => setIncomingText(e.target.value)}
@@ -481,7 +509,7 @@ export default function Dashboard({ onLogout, user }) {
 
                 <div>
                   <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-white/30">Manual response</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 min-w-0">
                     <input
                       value={manualReply}
                       onChange={(e) => setManualReply(e.target.value)}
@@ -511,7 +539,7 @@ export default function Dashboard({ onLogout, user }) {
           </div>
 
           {/* Right column */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <LeadPipeline
               leads={leads}
               selectedLead={selectedLead}
@@ -627,6 +655,17 @@ export default function Dashboard({ onLogout, user }) {
           <CheckCircle2 className="h-4 w-4 text-accent" />
           {unreadAlerts} alert{unreadAlerts > 1 ? 's' : ''} need attention
         </button>
+      )}
+
+      {/* ── Agent Selector Modal ── */}
+      {showAgentSelector && (
+        <AgentSelector
+          initialAgent={activeAgent}
+          onAgentSelected={(agent) => {
+            setActiveAgent(agent.id);
+            setShowAgentSelector(false);
+          }}
+        />
       )}
     </div>
   );

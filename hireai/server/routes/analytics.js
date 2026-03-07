@@ -20,8 +20,8 @@ function parseIso(value, label) {
 
 router.get('/analytics/today', requireAuth, async (_req, res) => {
   try {
-    const messageCounts = await Message.todayChannelCounts();
-    const status = await ActivityLog.todayStats();
+    const messageCounts = await Message.todayChannelCounts(_req.user.id);
+    const status = await ActivityLog.todayStats(_req.user.id);
     return res.json({
       whatsapp: messageCounts.whatsapp || 0,
       email: messageCounts.email || 0,
@@ -44,12 +44,16 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'from must be before to' });
     }
 
+    const userId = req.user.id;
     const [msgStats, leadStats, bookingStats, hourlyActivity, channelBreakdown, dailyLeads, avgResponse] = await Promise.all([
       db.get(
         `SELECT COUNT(*) AS total, SUM(CASE WHEN sentByAI=1 THEN 1 ELSE 0 END) AS aiReplies,
                 SUM(CASE WHEN direction='in' THEN 1 ELSE 0 END) AS inbound,
                 SUM(CASE WHEN direction='out' THEN 1 ELSE 0 END) AS outbound
-         FROM messages WHERE timestamp BETWEEN ? AND ?`, [from, to]
+         FROM messages m
+         JOIN leads l ON l.id = m.leadId
+         WHERE m.timestamp BETWEEN ? AND ? AND l.userId = ?`,
+        [from, to, userId]
       ),
       db.get(
         `SELECT COUNT(*) AS total,
@@ -58,38 +62,51 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status='booked' THEN 1 ELSE 0 END) AS booked,
                 SUM(CASE WHEN status='closed' THEN 1 ELSE 0 END) AS closed,
                 SUM(CASE WHEN status='escalated' THEN 1 ELSE 0 END) AS escalated
-         FROM leads WHERE createdAt BETWEEN ? AND ?`, [from, to]
+         FROM leads WHERE createdAt BETWEEN ? AND ? AND userId = ?`,
+        [from, to, userId]
       ),
       db.get(
         `SELECT COUNT(*) AS total,
                 SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
                 SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END) AS cancelled
-         FROM bookings WHERE createdAt BETWEEN ? AND ?`, [from, to]
+         FROM bookings b
+         JOIN leads l ON l.id = b.leadId
+         WHERE b.createdAt BETWEEN ? AND ? AND l.userId = ?`,
+        [from, to, userId]
       ),
       db.all(
-        `SELECT strftime('%H', timestamp) AS hour, COUNT(*) AS count
-         FROM messages WHERE timestamp BETWEEN ? AND ?
-         GROUP BY hour ORDER BY hour`, [from, to]
+        `SELECT strftime('%H', m.timestamp) AS hour, COUNT(*) AS count
+         FROM messages m
+         JOIN leads l ON l.id = m.leadId
+         WHERE m.timestamp BETWEEN ? AND ? AND l.userId = ?
+         GROUP BY hour ORDER BY hour`,
+        [from, to, userId]
       ),
       db.all(
-        `SELECT channel, COUNT(*) AS count FROM messages
-         WHERE timestamp BETWEEN ? AND ? AND direction='in'
-         GROUP BY channel`, [from, to]
+        `SELECT m.channel AS channel, COUNT(*) AS count
+         FROM messages m
+         JOIN leads l ON l.id = m.leadId
+         WHERE m.timestamp BETWEEN ? AND ? AND m.direction='in' AND l.userId = ?
+         GROUP BY m.channel`,
+        [from, to, userId]
       ),
       db.all(
         `SELECT date(createdAt) AS day, COUNT(*) AS count
-         FROM leads WHERE createdAt BETWEEN ? AND ?
-         GROUP BY day ORDER BY day`, [from, to]
+         FROM leads WHERE createdAt BETWEEN ? AND ? AND userId = ?
+         GROUP BY day ORDER BY day`,
+        [from, to, userId]
       ),
       db.get(
         `SELECT AVG(diff_seconds)/60.0 AS avgMinutes FROM (
            SELECT (strftime('%s', out.timestamp)-strftime('%s', in_.timestamp)) AS diff_seconds
            FROM messages in_
+           JOIN leads lead_scope ON lead_scope.id = in_.leadId AND lead_scope.userId = ?
            JOIN messages out ON out.leadId=in_.leadId AND out.direction='out'
              AND out.sentByAI=1 AND out.timestamp>in_.timestamp
            WHERE in_.direction='in' AND in_.timestamp BETWEEN ? AND ?
            GROUP BY in_.id HAVING MIN(out.timestamp)
-         )`, [from, to]
+         )`,
+        [userId, from, to]
       ),
     ]);
 
@@ -111,13 +128,25 @@ router.get('/analytics/followups', requireAuth, async (_req, res) => {
   try {
     const db = await getDb();
     const limit = safeLimit(_req.query.limit, 100, 300);
-    const log = await db.all(`SELECT * FROM followup_log ORDER BY sentAt DESC LIMIT ?`, [limit]);
+    const userId = _req.user.id;
+    const log = await db.all(
+      `SELECT f.*
+       FROM followup_log f
+       JOIN leads l ON l.id = f.leadId
+       WHERE l.userId = ?
+       ORDER BY f.sentAt DESC
+       LIMIT ?`,
+      [userId, limit]
+    );
     const stats = await db.get(
       `SELECT COUNT(*) AS total, COUNT(DISTINCT leadId) AS uniqueLeads,
               SUM(CASE WHEN sequenceStep=1 THEN 1 ELSE 0 END) AS step1,
               SUM(CASE WHEN sequenceStep=2 THEN 1 ELSE 0 END) AS step2,
               SUM(CASE WHEN sequenceStep=3 THEN 1 ELSE 0 END) AS step3
-       FROM followup_log`
+       FROM followup_log f
+       JOIN leads l ON l.id = f.leadId
+       WHERE l.userId = ?`,
+      [userId]
     );
     return res.json({ log, stats });
   } catch (error) {

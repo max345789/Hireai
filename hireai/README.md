@@ -24,9 +24,12 @@ App URLs:
 - Backend: `http://localhost:3001`
 - Widget script: `http://localhost:3001/widget.js`
 
-Default demo login:
-- Email: `admin@hireai.local`
-- Password: `password123`
+First access:
+- Register your first user from the login screen (Register tab), or
+- optionally enable bootstrap admin in `.env` with:
+  - `BOOTSTRAP_ADMIN_ON_START=true`
+  - `ADMIN_EMAIL=you@example.com`
+  - `ADMIN_PASSWORD=<strong-password>`
 
 ## Commands
 
@@ -72,3 +75,6 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 ## Environment
 Use `.env.example` as the source of truth for required variables.
 For platforms with read-only app directories, set `DB_PATH=/tmp/hireai.db`.
+For production:
+- `ALLOW_MOCK_DELIVERY=false`
+- `BOOTSTRAP_ADMIN_ON_START=false`

@@ -3,10 +3,11 @@ const WidgetSession = require('../models/WidgetSession');
 const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
-const { processMessage } = require('../services/agentBrain');
-const { validateInbound } = require('../services/channelGuard');
+const User = require('../models/User');
+const { processInboundEvent } = require('../services/conversationPipeline');
 const { idempotency } = require('../middleware/idempotency');
 const { asString, asInteger } = require('../utils/validate');
+const { resolveWidgetUser, resolveWidgetUserByWidgetId } = require('../services/userIntegrationResolver');
 
 const router = express.Router();
 
@@ -26,16 +27,33 @@ async function resolveSession(sessionId) {
   return { session, lead };
 }
 
+async function resolveWidgetUserId({ widgetId, agencyId, agencyName } = {}) {
+  // Prefer widgetId (unique per account) — most reliable
+  if (widgetId) {
+    const byWidgetId = await resolveWidgetUserByWidgetId(widgetId);
+    if (byWidgetId) return byWidgetId.id;
+  }
+
+  // Fallback: legacy agencyId/agencyName resolution
+  const scoped = await resolveWidgetUser({ agencyId, agencyName });
+  if (scoped) return scoped.id;
+
+  const user = await User.firstUser();
+  return user?.id || null;
+}
+
 router.post('/widget/session', async (req, res) => {
   try {
     const io = req.app.get('io');
     const sessionId = asString(req.body?.sessionId, 'sessionId', { max: 120 });
+    const widgetId = asString(req.body?.widgetId, 'widgetId', { max: 80 });
     const agencyId = asString(req.body?.agencyId, 'agencyId', { max: 120 }) || process.env.AGENCY_ID || 'agency_001';
     const agencyName = asString(req.body?.agencyName, 'agencyName', { max: 120 }) || 'Dream Properties';
     const greeting =
       asString(req.body?.greeting, 'greeting', { max: 600 }) ||
       'Hi! Looking for your dream property? I can help 24/7 🏠';
     const visitorName = asString(req.body?.visitorName, 'visitorName', { max: 120 }) || 'Website Visitor';
+    const userId = await resolveWidgetUserId({ widgetId, agencyId, agencyName });
 
     if (sessionId) {
       const existing = await resolveSession(sessionId);
@@ -53,6 +71,7 @@ router.post('/widget/session', async (req, res) => {
     }
 
     const lead = await Lead.create({
+      userId,
       name: visitorName,
       channel: 'web',
       status: 'new',
@@ -78,6 +97,7 @@ router.post('/widget/session', async (req, res) => {
 
     const activity = await ActivityLog.create({
       leadId: lead.id,
+      userId: lead.userId || userId || null,
       leadName: lead.name,
       action: 'replied',
       channel: 'web',
@@ -122,67 +142,34 @@ router.post('/widget/message', idempotency({ scope: (req) => `widget:message:${r
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    const userId = await resolveWidgetUserId({
+      agencyId: resolved.session?.agencyId || null,
+      agencyName: null,
+    });
+
     await WidgetSession.touch(sessionId);
 
     const lead = await Lead.update(resolved.lead.id, {
+      userId: resolved.lead.userId || userId,
       name: visitorName || resolved.lead.name,
       channel: 'web',
     });
 
-    const guard = await validateInbound({ lead, phone: null, content: message });
-    if (!guard.ok) {
-      const status =
-        guard.reason === 'duplicate' ? 409 :
-        guard.reason === 'rate_limited' ? 429 : 200;
-      return res.status(status).json({ blocked: true, reason: guard.reason });
-    }
-
-    const inMessage = await Message.create({
-      leadId: lead.id,
-      direction: 'in',
+    const result = await processInboundEvent({
+      io,
+      lead,
+      userId: lead.userId || userId,
       channel: 'web',
-      content: message,
-      sentByAI: false,
-      deliveryStatus: 'received',
+      message,
       metadata: { source: 'widget' },
     });
 
-    emit(io, 'message:new', {
-      ...inMessage,
-      leadName: lead.name,
-      leadStatus: lead.status,
-      icon: '👤',
-    });
-
-    if (lead.aiPaused) {
-      const activity = await ActivityLog.create({
-        leadId: lead.id,
-        leadName: lead.name,
-        action: 'needs_human',
-        channel: 'web',
-        description: `Web chat message from ${lead.name} while takeover is active`,
-        sentByAI: false,
-      });
-      emit(io, 'agent:action', activity);
-
-      return res.json({
-        queued: true,
-        paused: true,
-      });
-    }
-
-    const history = await Message.getByLeadId(lead.id);
-    const result = await processMessage(message, lead, history.slice(-10), {
-      io,
-      channel: 'web',
-    });
-
-    const responseMessage = result?.outMessage?.content || null;
-
     return res.json({
       queued: true,
-      response: responseMessage,
-      lead: result.lead,
+      response: result?.outMessage?.content || null,
+      blocked: result?.blocked || false,
+      reason: result?.reason || null,
+      lead: result.lead || lead,
     });
   } catch (error) {
     if (error?.name === 'ValidationError') {

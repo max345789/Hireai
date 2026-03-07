@@ -27,12 +27,15 @@ const messagesRoutes = require('./routes/messages');
 const webhooksRoutes = require('./routes/webhooks');
 const widgetRoutes = require('./routes/widget');
 const channelsRoutes = require('./routes/channels');
+const integrationsRoutes = require('./routes/integrations');
 const analyticsRoutes = require('./routes/analytics');
 const agentRoutes = require('./routes/agent');
+const inboxRoutes = require('./routes/inbox');
 const bookingRoutes = require('./routes/bookings');
 const billingRoutes = require('./routes/billing');
 const calendarRoutes = require('./routes/calendar');
 const metaRoutes = require('./routes/meta');
+const agentSelectorRoutes = require('./routes/agentSelector');
 const { runAllSweeps } = require('./services/followupEngine');
 
 const app = express();
@@ -154,12 +157,15 @@ app.use('/api', authRoutes);
 app.use('/api', leadsRoutes);
 app.use('/api', messagesRoutes);
 app.use('/api', channelsRoutes);
+app.use('/api', integrationsRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api', agentRoutes);
+app.use('/api', inboxRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', billingRoutes);
 app.use('/api', calendarRoutes);
 app.use('/api', metaRoutes);
+app.use('/api', agentSelectorRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -208,26 +214,35 @@ function printStartupBanner() {
   // eslint-disable-next-line no-console
   console.log('🤖 Agent Status: ACTIVE');
   // eslint-disable-next-line no-console
-  console.log('📨 Simulation Mode: ON');
+  console.log(`📨 Simulation Mode: ${env.allowMockDelivery ? 'ON' : 'OFF'}`);
   // eslint-disable-next-line no-console
   console.log('📅 Follow-up Engine: ACTIVE (every 30 min)');
 }
 
-async function ensureDefaultUser() {
+async function ensureBootstrapAdmin() {
+  if (!env.bootstrapAdminOnStart) return;
+
   const user = await User.firstUser();
   if (user) return;
 
-  const password = await bcrypt.hash('password123', 10);
+  if (!env.bootstrapAdminEmail || !env.bootstrapAdminPassword) {
+    logger.warn('bootstrap_admin_skipped', {
+      reason: 'missing_admin_email_or_password',
+    });
+    return;
+  }
+
+  const password = await bcrypt.hash(env.bootstrapAdminPassword, 10);
   await User.create({
-    agencyName: 'HireAI Demo Realty',
-    email: 'admin@hireai.local',
+    agencyName: env.bootstrapAdminAgencyName,
+    email: env.bootstrapAdminEmail,
     password,
     agentPersonality: 'Warm, proactive, and concise',
   });
 
-  logger.warn('created_default_user', {
-    email: 'admin@hireai.local',
-    note: 'Update this credential immediately in non-demo environments.',
+  logger.warn('bootstrap_admin_created', {
+    email: env.bootstrapAdminEmail,
+    note: 'Disable BOOTSTRAP_ADMIN_ON_START after first login.',
   });
 }
 
@@ -305,7 +320,7 @@ async function start() {
   validateStartupConfig();
   await initDb();
   dbReady = true;
-  await ensureDefaultUser();
+  await ensureBootstrapAdmin();
   scheduleJobs();
 
   server.listen(env.port, () => {

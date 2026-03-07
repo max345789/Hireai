@@ -24,7 +24,7 @@ class Booking {
   static async getById(id) {
     const db = await getDb();
     return db.get(
-      `SELECT b.*, l.name AS leadName, l.channel AS leadChannel, l.email AS leadEmail, l.phone AS leadPhone
+      `SELECT b.*, l.userId AS leadUserId, l.name AS leadName, l.channel AS leadChannel, l.email AS leadEmail, l.phone AS leadPhone
        FROM bookings b
        JOIN leads l ON l.id = b.leadId
        WHERE b.id = ?`,
@@ -37,6 +37,7 @@ class Booking {
     return db.all(
       `SELECT
          b.*,
+         l.userId AS leadUserId,
          l.name AS leadName,
          l.channel AS leadChannel
        FROM bookings b
@@ -50,6 +51,7 @@ class Booking {
     return db.all(
       `SELECT
          b.*,
+         l.userId AS leadUserId,
          l.name AS leadName,
          l.channel AS leadChannel
        FROM bookings b
@@ -62,7 +64,7 @@ class Booking {
   static async upcoming(days = 7) {
     const db = await getDb();
     return db.all(
-      `SELECT b.*, l.name AS leadName, l.channel AS leadChannel
+      `SELECT b.*, l.userId AS leadUserId, l.name AS leadName, l.channel AS leadChannel
        FROM bookings b
        JOIN leads l ON l.id = b.leadId
        WHERE b.dateTime >= datetime('now')

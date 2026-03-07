@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
+import Inbox from './pages/Inbox';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
 import Analytics from './pages/Analytics';
 import Billing from './pages/Billing';
+import LandingPage from './landing/LandingPage';
 import { apiRequest, clearToken, getToken } from './lib/api';
 
 function ProtectedRoute({ user, children }) {
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   return children;
@@ -55,12 +57,13 @@ export default function App() {
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/" replace /> : <Login onAuth={(nextUser) => setUser(nextUser)} />}
+        element={user ? <Navigate to="/inbox" replace /> : <Login onAuth={(nextUser) => setUser(nextUser)} />}
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/" replace /> : <Register onAuth={(nextUser) => setUser(nextUser)} />}
+        element={user ? <Navigate to="/inbox" replace /> : <Register onAuth={(nextUser) => setUser(nextUser)} />}
       />
+      <Route path="/landing" element={<LandingPage />} />
       <Route
         path="/onboarding"
         element={(
@@ -70,13 +73,22 @@ export default function App() {
         )}
       />
       <Route
-        path="/"
+        path="/inbox"
+        element={(
+          <ProtectedRoute user={user}>
+            <Inbox />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/dashboard"
         element={(
           <ProtectedRoute user={user}>
             <Dashboard user={user} onLogout={() => setUser(null)} />
           </ProtectedRoute>
         )}
       />
+      <Route path="/" element={<Navigate to={user ? '/inbox' : '/landing'} replace />} />
       <Route
         path="/settings"
         element={(
@@ -101,7 +113,7 @@ export default function App() {
           </ProtectedRoute>
         )}
       />
-      <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+      <Route path="*" element={<Navigate to={user ? '/inbox' : '/landing'} replace />} />
     </Routes>
   );
 }

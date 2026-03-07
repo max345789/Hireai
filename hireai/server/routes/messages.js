@@ -2,42 +2,27 @@ const express = require('express');
 const Lead = require('../models/Lead');
 const Message = require('../models/Message');
 const ActivityLog = require('../models/ActivityLog');
-const twilioService = require('../services/twilioService');
-const emailService = require('../services/emailService');
+const User = require('../models/User');
+const { dispatchOutbound } = require('../services/conversationPipeline');
 const { requireAuth } = require('../middleware/auth');
 const { idempotency } = require('../middleware/idempotency');
 const { asInteger, asString, asEnum, safeLimit } = require('../utils/validate');
 
 const router = express.Router();
 
-async function sendOutbound(lead, channel, content) {
-  if (channel === 'whatsapp' && lead.phone) {
-    return twilioService.sendWhatsApp(lead.phone, content);
-  }
-
-  if (channel === 'sms' && lead.phone) {
-    return twilioService.sendSMS(lead.phone, content);
-  }
-
-  if (channel === 'email' && lead.email) {
-    return emailService.send(lead.email, 'Re: Your Property Inquiry', content, content, {
-      agencyName: 'HireAI Realty',
-      agencyLogo: null,
-    });
-  }
-
-  return { mocked: true, success: true, sid: null, channel };
-}
-
 router.get('/messages', requireAuth, async (req, res) => {
   const limit = safeLimit(req.query.limit, 80, 200);
-  const messages = await Message.recentFeed(limit);
+  const messages = await Message.recentFeed(limit, req.user.id);
   return res.json({ messages });
 });
 
 router.get('/messages/:leadId', requireAuth, async (req, res) => {
   try {
     const leadId = asInteger(req.params.leadId, 'leadId', { required: true, min: 1 });
+    const lead = await Lead.getById(leadId);
+    if (!lead || (lead.userId && Number(lead.userId) !== Number(req.user.id))) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
     const sinceId = asInteger(req.query.since, 'since', { min: 0, fallback: 0 });
     const messages = await Message.getByLeadId(leadId, { sinceId });
     return res.json({ messages });
@@ -53,12 +38,12 @@ router.post('/messages/send', requireAuth, idempotency({ scope: (req) => `messag
   try {
     const leadId = asInteger(req.body?.leadId, 'leadId', { required: true, min: 1 });
     const content = asString(req.body?.content, 'content', { required: true, min: 1, max: 5000 });
-    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual'], {
+    const channel = asEnum(req.body?.channel, 'channel', ['whatsapp', 'sms', 'email', 'web', 'webchat', 'manual', 'instagram', 'messenger'], {
       fallback: null,
     });
 
     const lead = await Lead.getById(leadId);
-    if (!lead) {
+    if (!lead || (lead.userId && Number(lead.userId) !== Number(req.user.id))) {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
@@ -74,7 +59,8 @@ router.post('/messages/send', requireAuth, idempotency({ scope: (req) => `messag
       metadata: { source: 'manual' },
     });
 
-    const sendResult = await sendOutbound(lead, finalChannel, content);
+    const user = await User.getById(req.user.id);
+    const sendResult = await dispatchOutbound(finalChannel, lead, content, user);
 
     outMessage = await Message.updateDelivery(outMessage.id, {
       externalSid: sendResult.sid || null,

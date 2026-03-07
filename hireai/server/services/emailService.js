@@ -1,21 +1,31 @@
 const nodemailer = require('nodemailer');
+const { env } = require('../config/env');
 
 function getAuthPassword() {
   return process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD || null;
 }
 
-function isConfigured() {
-  return Boolean(process.env.GMAIL_USER && getAuthPassword());
+function resolveSmtpOptions(options = {}) {
+  return {
+    smtpUser: options.smtpUser || process.env.GMAIL_USER || null,
+    smtpPass: options.smtpPass || getAuthPassword(),
+  };
 }
 
-function getTransport() {
-  if (!isConfigured()) return null;
+function isConfigured(options = {}) {
+  const cfg = resolveSmtpOptions(options);
+  return Boolean(cfg.smtpUser && cfg.smtpPass);
+}
+
+function getTransport(options = {}) {
+  const cfg = resolveSmtpOptions(options);
+  if (!isConfigured(cfg)) return null;
 
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: getAuthPassword(),
+      user: cfg.smtpUser,
+      pass: cfg.smtpPass,
     },
   });
 }
@@ -70,7 +80,8 @@ function cleanInboundEmailContent(input) {
 }
 
 async function send(to, subject, htmlBody, textBody, options = {}) {
-  const transport = getTransport();
+  const smtp = resolveSmtpOptions(options);
+  const transport = getTransport(smtp);
   const agencyName = options.agencyName || 'HireAI Realty';
   const agencyLogo = options.agencyLogo || null;
   const recipient = String(to || '').trim().toLowerCase();
@@ -91,6 +102,18 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
   }
 
   if (!transport) {
+    if (!env.allowMockDelivery) {
+      return {
+        mocked: false,
+        success: false,
+        sid: null,
+        channel: 'email',
+        to: recipient,
+        subject: emailSubject,
+        error: 'Gmail SMTP is not configured',
+      };
+    }
+
     return {
       mocked: true,
       success: true,
@@ -105,7 +128,7 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
 
   try {
     const info = await transport.sendMail({
-      from: process.env.GMAIL_USER,
+      from: smtp.smtpUser,
       to: recipient,
       subject: emailSubject,
       html,
@@ -136,14 +159,18 @@ async function send(to, subject, htmlBody, textBody, options = {}) {
 
 function parseInbound(body) {
   const sender = body?.from || body?.sender || body?.From || '';
+  const recipient = body?.to || body?.recipient || body?.To || '';
   const fromMatch = String(sender).match(/<([^>]+)>/);
+  const toMatch = String(recipient).match(/<([^>]+)>/);
   const from = (fromMatch ? fromMatch[1] : sender).trim().toLowerCase();
+  const to = (toMatch ? toMatch[1] : recipient).trim().toLowerCase();
   const subject = body?.subject || body?.Subject || 'Property Inquiry';
   const text = body?.text || body?.stripped_text || body?.body || '';
   const html = body?.html || body?.stripped_html || null;
 
   return {
     from,
+    to,
     subject,
     text,
     html,

@@ -1,9 +1,20 @@
 const twilio = require('twilio');
+const { env } = require('../config/env');
 
-function getClient() {
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } = process.env;
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return null;
-  return twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+function resolveCredentials(options = {}) {
+  return {
+    accountSid: options.accountSid || process.env.TWILIO_ACCOUNT_SID || null,
+    authToken: options.authToken || process.env.TWILIO_AUTH_TOKEN || null,
+    whatsappNumber: options.whatsappNumber || process.env.TWILIO_WHATSAPP_NUMBER || null,
+    smsNumber: options.smsNumber || process.env.TWILIO_SMS_NUMBER || null,
+  };
+}
+
+function getClient(credentials) {
+  const accountSid = credentials?.accountSid || null;
+  const authToken = credentials?.authToken || null;
+  if (!accountSid || !authToken) return null;
+  return twilio(accountSid, authToken);
 }
 
 function normalizeWhatsAppNumber(value) {
@@ -11,17 +22,15 @@ function normalizeWhatsAppNumber(value) {
   return String(value).startsWith('whatsapp:') ? String(value) : `whatsapp:${value}`;
 }
 
-function isConfigured() {
-  return Boolean(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_WHATSAPP_NUMBER
-  );
+function isConfigured(options = {}) {
+  const credentials = resolveCredentials(options);
+  return Boolean(credentials.accountSid && credentials.authToken && credentials.whatsappNumber);
 }
 
-async function sendWhatsApp(to, message) {
-  const client = getClient();
-  const from = normalizeWhatsAppNumber(process.env.TWILIO_WHATSAPP_NUMBER);
+async function sendWhatsApp(to, message, options = {}) {
+  const credentials = resolveCredentials(options);
+  const client = getClient(credentials);
+  const from = normalizeWhatsAppNumber(credentials.whatsappNumber);
   const body = String(message || '').trim();
   const target = String(to || '').trim();
 
@@ -38,6 +47,18 @@ async function sendWhatsApp(to, message) {
   }
 
   if (!client || !from) {
+    if (!env.allowMockDelivery) {
+      return {
+        mocked: false,
+        sid: null,
+        channel: 'whatsapp',
+        to: target,
+        body,
+        success: false,
+        error: 'Twilio WhatsApp is not configured',
+      };
+    }
+
     return {
       mocked: true,
       sid: null,
@@ -77,9 +98,10 @@ async function sendWhatsApp(to, message) {
   }
 }
 
-async function sendSMS(to, message) {
-  const client = getClient();
-  const from = process.env.TWILIO_SMS_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER?.replace('whatsapp:', '');
+async function sendSMS(to, message, options = {}) {
+  const credentials = resolveCredentials(options);
+  const client = getClient(credentials);
+  const from = credentials.smsNumber || credentials.whatsappNumber?.replace('whatsapp:', '');
   const body = String(message || '').trim();
   const target = String(to || '').trim();
 
@@ -96,6 +118,18 @@ async function sendSMS(to, message) {
   }
 
   if (!client || !from) {
+    if (!env.allowMockDelivery) {
+      return {
+        mocked: false,
+        sid: null,
+        channel: 'sms',
+        to: target,
+        body,
+        success: false,
+        error: 'Twilio SMS is not configured',
+      };
+    }
+
     return {
       mocked: true,
       sid: null,
@@ -170,7 +204,9 @@ function validateWebhook(req) {
 
 function parseIncoming(webhookBody) {
   const fromRaw = webhookBody?.From || '';
+  const toRaw = webhookBody?.To || '';
   const from = String(fromRaw).replace('whatsapp:', '').trim();
+  const to = String(toRaw).replace('whatsapp:', '').trim();
   const mediaContentType = webhookBody?.MediaContentType0 || null;
 
   let messageType = 'text';
@@ -192,6 +228,8 @@ function parseIncoming(webhookBody) {
     messageType,
     channel: 'whatsapp',
     twilioSid: webhookBody?.MessageSid || null,
+    accountSid: webhookBody?.AccountSid || null,
+    to,
     profileName: webhookBody?.ProfileName || null,
   };
 }
