@@ -208,7 +208,7 @@ const HowItWorksSection = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-flowing bg-background py-16 sm:py-20 lg:py-28"
+      className="section-flowing bg-background py-14 sm:py-16 lg:py-24"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Header */}
@@ -232,7 +232,8 @@ const HowItWorksSection = () => {
           >
             <path
               ref={lineRef}
-              d="M 8 0 L 8 100%"
+              d="M 8 0 L 8 1000"
+              vectorEffect="non-scaling-stroke"
               stroke="rgba(182, 255, 46, 0.3)"
               strokeWidth="2"
               fill="none"

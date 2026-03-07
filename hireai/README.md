@@ -67,6 +67,7 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 
 ## Documentation
 - Architecture overview: `docs/ARCHITECTURE.md`
+- UI uplift plan (7.1 → 9.0): `docs/UI-9.0-PASS-PLAN.md`
 - Production checklist: `docs/PRODUCTION-CHECKLIST.md`
 - Runbooks:
   - `docs/runbooks/incident-response.md`
