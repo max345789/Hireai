@@ -66,6 +66,7 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 - CI workflow for server tests + client build + API smoke checks
 
 ## Documentation
+- Architecture overview: `docs/ARCHITECTURE.md`
 - Production checklist: `docs/PRODUCTION-CHECKLIST.md`
 - Runbooks:
   - `docs/runbooks/incident-response.md`
