@@ -17,15 +17,16 @@
 2. Import GitHub repo
 3. Set Framework Preset to **Vite**
 4. Set Root Directory to `client`
-5. Add env variable: `VITE_API_URL=https://your-railway-url.up.railway.app`
+5. Add env variable: `VITE_API_URL=https://dabcloud.in`
 6. Update `client/src/lib/api.js` if needed to use `VITE_API_URL`
 7. Deploy → copy your Vercel URL
 
 ### Set BASE_URL in Railway
 After Vercel deploys, go back to Railway and set:
 ```
-BASE_URL=https://your-railway-url.up.railway.app
-CORS_ORIGINS=https://your-vercel-url.vercel.app
+BASE_URL=https://dabcloud.in
+FRONTEND_URL=https://dabcloud.in
+CORS_ORIGINS=https://dabcloud.in
 ```
 
 ---
@@ -79,7 +80,8 @@ docker-compose logs -f server
 | `JWT_SECRET` | ✅ | Random 32+ char string |
 | `CORS_ORIGINS` | ✅ | Comma-separated frontend origins |
 | `JWT_ACCESS_TTL` | Optional | Access token TTL (default `7d`) |
-| `BASE_URL` | ✅ | Your domain (no trailing slash) |
+| `BASE_URL` | ✅ | Public backend base URL, use `https://dabcloud.in` |
+| `FRONTEND_URL` | ✅ | Public frontend URL, use `https://dabcloud.in` |
 | `TWILIO_ACCOUNT_SID` | Optional | For WhatsApp |
 | `TWILIO_AUTH_TOKEN` | Optional | For WhatsApp |
 | `TWILIO_WHATSAPP_NUMBER` | Optional | +1234567890 |
@@ -98,7 +100,7 @@ docker-compose logs -f server
 3. Copy `Key ID` → `RAZORPAY_KEY_ID`
 4. Copy `Key Secret` → `RAZORPAY_KEY_SECRET`
 5. Go to **Settings → Webhooks** → Add New Webhook
-6. Set URL: `https://yourdomain.com/api/billing/razorpay/webhook`
+6. Set URL: `https://dabcloud.in/api/billing/razorpay/webhook`
 7. Select events: `payment.captured`, `payment.failed`
 8. Copy the **Webhook Secret** → `RAZORPAY_WEBHOOK_SECRET`
 
@@ -116,7 +118,7 @@ Add these secrets to your GitHub repo (Settings → Secrets):
 | `VERCEL_TOKEN` | From vercel.com → Account → Tokens |
 | `VERCEL_ORG_ID` | From `.vercel/project.json` after `vercel link` |
 | `VERCEL_PROJECT_ID` | From `.vercel/project.json` after `vercel link` |
-| `VITE_API_URL` | Your Railway backend URL |
+| `VITE_API_URL` | `https://dabcloud.in` |
 
 ---
 
@@ -125,10 +127,10 @@ Add these secrets to your GitHub repo (Settings → Secrets):
 1. Go to console.cloud.google.com
 2. Create a project → Enable "Google Calendar API"
 3. Create OAuth 2.0 credentials (Web Application)
-4. Add redirect URI: `https://yourdomain.com/api/calendar/oauth/callback`
+4. Add redirect URI: `https://dabcloud.in/api/calendar/oauth/callback`
 5. In DAB AI Settings → calendarConfig, paste:
 ```json
-{"clientId":"your-client-id","clientSecret":"your-client-secret","redirectUri":"https://yourdomain.com/api/calendar/oauth/callback"}
+{"clientId":"your-client-id","clientSecret":"your-client-secret","redirectUri":"https://dabcloud.in/api/calendar/oauth/callback"}
 ```
 6. Click "Connect Google Calendar" in Settings
 

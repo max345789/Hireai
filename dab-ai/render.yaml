@@ -11,9 +11,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: BASE_URL
-        value: https://dab-ai-3sd4.onrender.com
+        value: https://dabcloud.in
+      - key: FRONTEND_URL
+        value: https://dabcloud.in
       - key: CORS_ORIGINS
-        value: https://dab-ai-1-adh0.onrender.com
+        value: https://dabcloud.in
       - key: PORT
         value: 3001
       - key: JWT_ACCESS_TTL
@@ -86,6 +88,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://dab-ai-3sd4.onrender.com
+        value: https://dabcloud.in
       - key: VITE_WS_URL
-        value: https://dab-ai-3sd4.onrender.com
+        value: https://dabcloud.in

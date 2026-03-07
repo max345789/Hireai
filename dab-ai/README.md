@@ -69,6 +69,7 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 - Architecture overview: `docs/ARCHITECTURE.md`
 - UI uplift plan (7.1 → 9.0): `docs/UI-9.0-PASS-PLAN.md`
 - Production checklist: `docs/PRODUCTION-CHECKLIST.md`
+- Production env checklist: `docs/PRODUCTION-ENV-CHECKLIST.md`
 - Launch day checklist: `docs/LAUNCH-DAY-CHECKLIST.md`
 - Runbooks:
   - `docs/runbooks/incident-response.md`
@@ -79,6 +80,10 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 Use `.env.example` as the source of truth for required variables.
 For platforms with read-only app directories, set `DB_PATH=/tmp/dab-ai.db`.
 For production:
+- Intended primary domain: `https://dabcloud.in`
+- Set `BASE_URL=https://dabcloud.in`
+- Set `FRONTEND_URL=https://dabcloud.in`
+- Set `CORS_ORIGINS=https://dabcloud.in`
 - `ALLOW_MOCK_DELIVERY=false`
 - `BOOTSTRAP_ADMIN_ON_START=false`
 - Configure AI chain with one or more keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`

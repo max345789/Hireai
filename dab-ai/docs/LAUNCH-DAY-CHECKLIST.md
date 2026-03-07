@@ -3,7 +3,7 @@
 ## Today (must finish before freeze)
 
 1. **Set production environment variables**
-   - Required: `NODE_ENV=production`, `JWT_SECRET` (32+ chars), `BASE_URL`, `CORS_ORIGINS`, `ALLOW_MOCK_DELIVERY=false`, `BOOTSTRAP_ADMIN_ON_START=false`.
+   - Required: `NODE_ENV=production`, `JWT_SECRET` (32+ chars), `BASE_URL=https://dabcloud.in`, `FRONTEND_URL=https://dabcloud.in`, `CORS_ORIGINS=https://dabcloud.in`, `ALLOW_MOCK_DELIVERY=false`, `BOOTSTRAP_ADMIN_ON_START=false`.
 2. **Configure AI model chain for 24/7 resilience**
    - Add at least one of: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`.
    - Set `AI_MODEL_CHAIN=claude,openai,gemini` (or your preferred order).
