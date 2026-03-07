@@ -1,42 +1,63 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Inbox from './pages/Inbox';
 import Settings from './pages/Settings';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Onboarding from './pages/Onboarding';
-import Analytics from './pages/Analytics';
-import Billing from './pages/Billing';
-import LandingPage from './landing/LandingPage';
-import { apiRequest, clearToken, getToken } from './lib/api';
+import { apiRequest, clearToken, getToken, setToken } from './lib/api';
 
-function ProtectedRoute({ user, children }) {
-  if (!user) {
-    return <Navigate to="/landing" replace />;
-  }
-
-  return children;
-}
+const AUTO_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'admin@dabai.app';
+const AUTO_PASS  = import.meta.env.VITE_ADMIN_PASS  || 'DabAI2024SecurePass!';
+const AUTO_AGENCY = 'DAB AI';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser]     = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function bootstrap() {
+      // 1. Try existing token
       const token = getToken();
-      if (!token) {
-        setLoading(false);
-        return;
+      if (token) {
+        try {
+          const data = await apiRequest('/auth/me');
+          setUser(data.user || null);
+          setLoading(false);
+          return;
+        } catch {
+          clearToken();
+        }
       }
 
+      // 2. Try auto-login
       try {
-        const data = await apiRequest('/auth/me');
-        setUser(data.user || null);
+        const res = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: AUTO_EMAIL, password: AUTO_PASS }),
+        });
+        setToken(res.token);
+        setUser(res.user);
+        setLoading(false);
+        return;
       } catch {
-        clearToken();
-        setUser(null);
+        // Login failed — register first
+      }
+
+      // 3. Auto-register then login
+      try {
+        await apiRequest('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ email: AUTO_EMAIL, password: AUTO_PASS, agencyName: AUTO_AGENCY }),
+        });
+        const res = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: AUTO_EMAIL, password: AUTO_PASS }),
+        });
+        setToken(res.token);
+        setUser(res.user);
+      } catch (err) {
+        // Could not auto-auth — show minimal error state
+        console.error('Auto-auth failed:', err.message);
       } finally {
         setLoading(false);
       }
@@ -47,73 +68,44 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="rounded-2xl bg-white px-6 py-4 text-sm text-gray-500 shadow-card">Starting DAB AI…</div>
+      <div className="flex min-h-screen items-center justify-center bg-oat">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-coral flex items-center justify-center shadow-card">
+            <span className="text-white font-heading font-bold text-lg">D</span>
+          </div>
+          <p className="text-sm text-muted font-medium animate-pulse-soft">Starting DAB AI…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-oat">
+        <div className="bento-card p-8 text-center max-w-sm w-full mx-4">
+          <div className="h-12 w-12 rounded-2xl bg-coral mx-auto mb-4 flex items-center justify-center">
+            <span className="text-white font-heading font-bold text-xl">D</span>
+          </div>
+          <h1 className="font-heading font-bold text-ink text-xl mb-2">Could not connect</h1>
+          <p className="text-muted text-sm mb-4">Unable to reach the server. Make sure the backend is running.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full rounded-xl bg-coral text-white font-semibold py-2.5 text-sm hover:opacity-90 transition-opacity"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Login onAuth={(nextUser) => setUser(nextUser)} />}
-      />
-      <Route
-        path="/register"
-        element={user ? <Navigate to="/dashboard" replace /> : <Register onAuth={(nextUser) => setUser(nextUser)} />}
-      />
-      <Route path="/landing" element={<LandingPage />} />
-      <Route
-        path="/onboarding"
-        element={(
-          <ProtectedRoute user={user}>
-            <Onboarding />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/inbox"
-        element={(
-          <ProtectedRoute user={user}>
-            <Inbox />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/dashboard"
-        element={(
-          <ProtectedRoute user={user}>
-            <Dashboard user={user} onLogout={() => setUser(null)} />
-          </ProtectedRoute>
-        )}
-      />
-      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/landing'} replace />} />
-      <Route
-        path="/settings"
-        element={(
-          <ProtectedRoute user={user}>
-            <Settings />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/analytics"
-        element={(
-          <ProtectedRoute user={user}>
-            <Analytics />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/billing"
-        element={(
-          <ProtectedRoute user={user}>
-            <Billing />
-          </ProtectedRoute>
-        )}
-      />
-      <Route path="*" element={<Navigate to={user ? '/dashboard' : '/landing'} replace />} />
+      <Route path="/dashboard" element={<Dashboard user={user} onLogout={() => { clearToken(); setUser(null); }} />} />
+      <Route path="/inbox"     element={<Inbox />} />
+      <Route path="/analytics" element={<Analytics />} />
+      <Route path="/settings"  element={<Settings />} />
+      <Route path="*"          element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

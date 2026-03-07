@@ -22,7 +22,10 @@ function signToken(user) {
   );
 }
 
-function sanitizeUser(user) {
+// requestingRole: the role claim from the verified JWT (req.user.role).
+// Falls back to the DB user's role only for routes that create/own the token (register/login).
+function sanitizeUser(user, requestingRole) {
+  const effectiveRole = requestingRole ?? user.role ?? 'admin';
   return {
     id: user.id,
     agencyName: user.agencyName,
@@ -47,8 +50,8 @@ function sanitizeUser(user) {
     slackWebhook: user.slackWebhook,
     notificationPrefs: user.notificationPrefs,
     widgetId: user.widgetId || null,
-    // widgetSecret only exposed to account admins — never to regular users
-    widgetSecret: user.role === 'admin' ? (user.widgetSecret || null) : undefined,
+    // widgetSecret only exposed to account admins — never to regular/sub users
+    widgetSecret: effectiveRole === 'admin' ? (user.widgetSecret || null) : undefined,
     // Auto-channel status: web widget is always connected
     defaultChannels: {
       web: { connected: true, mode: 'native' },
@@ -125,7 +128,7 @@ router.get('/auth/me', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  return res.json({ user: sanitizeUser(user) });
+  return res.json({ user: sanitizeUser(user, req.user.role) });
 });
 
 router.get('/settings', requireAuth, async (req, res) => {
@@ -134,7 +137,7 @@ router.get('/settings', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  return res.json({ settings: sanitizeUser(user) });
+  return res.json({ settings: sanitizeUser(user, req.user.role) });
 });
 
 router.patch('/settings', requireAuth, async (req, res) => {
@@ -161,7 +164,7 @@ router.patch('/settings', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    return res.json({ settings: sanitizeUser(user) });
+    return res.json({ settings: sanitizeUser(user, req.user.role) });
   } catch (error) {
     if (error?.name === 'ValidationError') {
       return res.status(400).json({ error: error.message });
@@ -215,7 +218,7 @@ router.patch('/auth/email', requireAuth, async (req, res) => {
     await db.run('UPDATE users SET email = ? WHERE id = ?', [normalizedEmail, req.user.id]);
 
     const updated = await User.getById(req.user.id);
-    return res.json({ token: signToken(updated), user: sanitizeUser(updated) });
+    return res.json({ token: signToken(updated), user: sanitizeUser(updated, req.user.role) });
   } catch (err) {
     if (err?.name === 'ValidationError') return res.status(400).json({ error: err.message });
     console.error('change email failed', err);

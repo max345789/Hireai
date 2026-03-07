@@ -4,164 +4,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Dark Theme (always) ──────────────────────────────────── */
 :root {
-  --bg-rgb:        9, 11, 18;
-  --card-rgb:      17, 21, 33;
-  --surface-rgb:   20, 24, 38;
-  --textSoft-rgb:  146, 152, 168;
-  --accent-rgb:    182, 255, 46;
-
-  --text-primary:  #F4F5FC;
-  --text-muted:    #9298A8;
-  --text-faint:    #545474;
-  --body-bg:       #090B12;
-
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border:        rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --body-bg: #F7F5F2;
+  --card-bg: #FFFFFF;
+  --coral:   #FF6B35;
+  --sky:     #38BDF8;
+  --mint:    #34D399;
+  --violet:  #A78BFA;
+  --amber:   #FBBF24;
+  --ink:     #1E1B4B;
+  --muted:   #6B7280;
 }
 
-/* ─── Base ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
-
 html, body, #root { height: 100%; }
 
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--body-bg);
-  color: var(--text-primary);
+  color: var(--ink);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection {
-  background: rgba(182, 255, 46, 0.25);
-  color: #090B12;
-}
+::selection { background: rgba(255,107,53,0.15); color: #1E1B4B; }
 
-/* ─── Scrollbar ────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(182, 255, 46, 0.2) transparent;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
 }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
 
-::-webkit-scrollbar         { width: 4px; height: 4px; }
-::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(182, 255, 46, 0.2); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(182, 255, 46, 0.35); }
-
-/* ─── Focus ────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid rgba(182, 255, 46, 0.55);
+  outline: 2px solid rgba(255,107,53,0.5);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* ─── Keyframes ────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-7px); }
-}
-@keyframes pulseSoft {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+.font-heading { font-family: 'Sora', sans-serif; }
+.font-mono    { font-family: 'IBM Plex Mono', monospace; }
+
+/* Bento card base */
+.bento-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
 }
 
-/* ─── Number display ───────────────────────────────────────── */
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* ─── Label mono ───────────────────────────────────────────── */
-.label-mono {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-
-/* ─── Gradient text (lime) ─────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(135deg, #B6FF2E 0%, #7FDD00 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ─── Premium input (dark) ─────────────────────────────────── */
-.input-premium {
-  width: 100%;
-  border-radius: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.input-premium::placeholder { color: var(--text-muted); }
-
-.input-premium:focus {
-  border-color: rgba(182, 255, 46, 0.5);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 3px rgba(182, 255, 46, 0.08);
-}
-
-select option { background: #111521; color: #F4F5FC; }
-
-/* ─── Timeline connector (lime) ────────────────────────────── */
-.timeline-line {
-  position: absolute;
-  left: 14px;
-  top: 28px;
-  bottom: 0;
-  width: 1.5px;
-  background: linear-gradient(to bottom, rgba(182, 255, 46, 0.25) 0%, transparent 100%);
-}
-
-/* ─── Shimmer skeleton ─────────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
-}
-
-/* ─── Noise overlay ────────────────────────────────────────── */
-.noise-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  opacity: 0.025;
-  mix-blend-mode: overlay;
-}
+/* Status pills */
+.pill-new       { background:#FFF7ED; color:#C2410C; }
+.pill-qualified { background:#F0FDF4; color:#15803D; }
+.pill-booked    { background:#EFF6FF; color:#1D4ED8; }
+.pill-escalated { background:#FFF1F2; color:#BE123C; }
+.pill-closed    { background:#F9FAFB; color:#374151; }

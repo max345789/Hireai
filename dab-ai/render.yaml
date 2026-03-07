@@ -42,6 +42,10 @@ services:
         value: "900000"
       - key: AUTH_RATE_MAX
         value: "40"
+      - key: BOOTSTRAP_ADMIN_ON_START
+        value: "true"
+      - key: ADMIN_EMAIL
+        value: admin@dabai.app
       # ── Secrets: set these manually in Render dashboard ──────
       - key: JWT_SECRET
         sync: false
