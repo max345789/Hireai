@@ -52,7 +52,7 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN direction='out' THEN 1 ELSE 0 END) AS outbound
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE m.timestamp BETWEEN ? AND ? AND l.userId = ?`,
+         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?`,
         [from, to, userId]
       ),
       db.get(
@@ -62,7 +62,7 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status='booked' THEN 1 ELSE 0 END) AS booked,
                 SUM(CASE WHEN status='closed' THEN 1 ELSE 0 END) AS closed,
                 SUM(CASE WHEN status='escalated' THEN 1 ELSE 0 END) AS escalated
-         FROM leads WHERE createdAt BETWEEN ? AND ? AND userId = ?`,
+         FROM leads WHERE datetime(createdAt) BETWEEN datetime(?) AND datetime(?) AND userId = ?`,
         [from, to, userId]
       ),
       db.get(
@@ -71,14 +71,14 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
                 SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END) AS cancelled
          FROM bookings b
          JOIN leads l ON l.id = b.leadId
-         WHERE b.createdAt BETWEEN ? AND ? AND l.userId = ?`,
+         WHERE datetime(b.createdAt) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?`,
         [from, to, userId]
       ),
       db.all(
-        `SELECT strftime('%H', m.timestamp) AS hour, COUNT(*) AS count
+        `SELECT strftime('%H', datetime(m.timestamp)) AS hour, COUNT(*) AS count
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE m.timestamp BETWEEN ? AND ? AND l.userId = ?
+         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND l.userId = ?
          GROUP BY hour ORDER BY hour`,
         [from, to, userId]
       ),
@@ -86,39 +86,85 @@ router.get('/analytics/range', requireAuth, async (req, res) => {
         `SELECT m.channel AS channel, COUNT(*) AS count
          FROM messages m
          JOIN leads l ON l.id = m.leadId
-         WHERE m.timestamp BETWEEN ? AND ? AND m.direction='in' AND l.userId = ?
+         WHERE datetime(m.timestamp) BETWEEN datetime(?) AND datetime(?) AND m.direction='in' AND l.userId = ?
          GROUP BY m.channel`,
         [from, to, userId]
       ),
       db.all(
-        `SELECT date(createdAt) AS day, COUNT(*) AS count
-         FROM leads WHERE createdAt BETWEEN ? AND ? AND userId = ?
+        `SELECT date(datetime(createdAt)) AS day, COUNT(*) AS count
+         FROM leads WHERE datetime(createdAt) BETWEEN datetime(?) AND datetime(?) AND userId = ?
          GROUP BY day ORDER BY day`,
         [from, to, userId]
       ),
       db.get(
-        `SELECT AVG(diff_seconds)/60.0 AS avgMinutes FROM (
-           SELECT (strftime('%s', out.timestamp)-strftime('%s', in_.timestamp)) AS diff_seconds
+        `SELECT AVG(diff_seconds)/60.0 AS avgMinutes
+         FROM (
+           SELECT (
+             strftime('%s', (
+               SELECT MIN(datetime(out.timestamp))
+               FROM messages out
+               WHERE out.leadId = in_.leadId
+                 AND out.direction = 'out'
+                 AND out.sentByAI = 1
+                 AND datetime(out.timestamp) > datetime(in_.timestamp)
+             )) - strftime('%s', datetime(in_.timestamp))
+           ) AS diff_seconds
            FROM messages in_
            JOIN leads lead_scope ON lead_scope.id = in_.leadId AND lead_scope.userId = ?
-           JOIN messages out ON out.leadId=in_.leadId AND out.direction='out'
-             AND out.sentByAI=1 AND out.timestamp>in_.timestamp
-           WHERE in_.direction='in' AND in_.timestamp BETWEEN ? AND ?
-           GROUP BY in_.id HAVING MIN(out.timestamp)
-         )`,
+           WHERE in_.direction = 'in'
+             AND datetime(in_.timestamp) BETWEEN datetime(?) AND datetime(?)
+         )
+         WHERE diff_seconds IS NOT NULL`,
         [userId, from, to]
       ),
     ]);
 
     const heatmap = Array.from({ length: 24 }, (_, i) => {
       const found = hourlyActivity.find((r) => Number(r.hour) === i);
-      return { hour: i, count: found ? found.count : 0 };
+      return { hour: i, count: found ? Number(found.count) : 0 };
     });
 
-    const hoursSaved = Math.round((msgStats.aiReplies || 0) * 5 / 60 * 10) / 10;
+    const normalizedMessageStats = {
+      total: Number(msgStats?.total || 0),
+      aiReplies: Number(msgStats?.aiReplies || 0),
+      inbound: Number(msgStats?.inbound || 0),
+      outbound: Number(msgStats?.outbound || 0),
+    };
+    const normalizedLeadStats = {
+      total: Number(leadStats?.total || 0),
+      new_leads: Number(leadStats?.new_leads || 0),
+      qualified: Number(leadStats?.qualified || 0),
+      booked: Number(leadStats?.booked || 0),
+      closed: Number(leadStats?.closed || 0),
+      escalated: Number(leadStats?.escalated || 0),
+    };
+    const normalizedBookingStats = {
+      total: Number(bookingStats?.total || 0),
+      completed: Number(bookingStats?.completed || 0),
+      cancelled: Number(bookingStats?.cancelled || 0),
+    };
+
+    const hoursSaved = Math.round((normalizedMessageStats.aiReplies || 0) * 5 / 60 * 10) / 10;
     const valueSaved = Math.round(hoursSaved * 20);
 
-    return res.json({ period: { from, to }, messages: msgStats, leads: leadStats, bookings: bookingStats, heatmap, channelBreakdown, dailyLeads, avgResponseMinutes: avgResponse?.avgMinutes ? Math.round(avgResponse.avgMinutes * 10) / 10 : null, hoursSaved, valueSaved });
+    return res.json({
+      period: { from, to },
+      messages: normalizedMessageStats,
+      leads: normalizedLeadStats,
+      bookings: normalizedBookingStats,
+      heatmap,
+      channelBreakdown: (channelBreakdown || []).map((item) => ({
+        ...item,
+        count: Number(item.count || 0),
+      })),
+      dailyLeads: (dailyLeads || []).map((item) => ({
+        ...item,
+        count: Number(item.count || 0),
+      })),
+      avgResponseMinutes: avgResponse?.avgMinutes ? Math.round(avgResponse.avgMinutes * 10) / 10 : null,
+      hoursSaved,
+      valueSaved,
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

@@ -207,7 +207,7 @@ export default function Billing() {
             <p className="text-xs text-textSoft">Manage your subscription — powered by Razorpay</p>
           </div>
           <Link
-            to="/inbox"
+            to="/dashboard"
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-surface px-3 py-2 text-xs text-textSoft hover:text-white"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

@@ -14,6 +14,10 @@ function buildUrl(path) {
   return `${API_BASE}/api${normalizedPath}`;
 }
 
+export function buildApiUrl(path) {
+  return buildUrl(path);
+}
+
 export function getToken() {
   return localStorage.getItem('dab-ai_token');
 }
@@ -46,4 +50,26 @@ export async function apiRequest(path, options = {}) {
   }
 
   return data;
+}
+
+export async function apiDownload(path, filename = 'download') {
+  const token = getToken();
+  const response = await fetch(buildUrl(path), {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Request failed with ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(objectUrl);
 }

@@ -11,23 +11,23 @@ function getStripe() {
 const PLANS = {
   starter: {
     name: 'Starter',
-    price: 199,
+    price: 119,
     priceId: process.env.STRIPE_PRICE_STARTER || null,
-    features: ['1 AI Agent', 'WhatsApp only', '500 conversations/month', 'Basic dashboard'],
-    limits: { conversations: 500, agents: 1, channels: ['whatsapp'] },
+    features: ['1 AI Agent', 'WhatsApp + Web chat', '500 conversations/month', 'Dashboard + inbox'],
+    limits: { conversations: 500, agents: 1, channels: ['whatsapp', 'web'] },
   },
   pro: {
     name: 'Pro',
-    price: 399,
+    price: 239,
     priceId: process.env.STRIPE_PRICE_PRO || null,
-    features: ['1 AI Agent', 'All channels (WhatsApp + Email + Web)', 'Unlimited conversations', 'Analytics + Reports'],
-    limits: { conversations: -1, agents: 1, channels: ['whatsapp', 'email', 'web'] },
+    features: ['2 AI Agents', 'All channels (WhatsApp + Email + Web)', 'Unlimited conversations', 'Analytics + Reports'],
+    limits: { conversations: -1, agents: 2, channels: ['whatsapp', 'email', 'web'] },
   },
   team: {
     name: 'Team',
-    price: 699,
+    price: 359,
     priceId: process.env.STRIPE_PRICE_TEAM || null,
-    features: ['3 AI Agents', 'All channels', 'Unlimited conversations', 'Full analytics', 'Team members (max 3)', 'PDF reports'],
+    features: ['3 AI Agents', 'All channels', 'Unlimited conversations', 'Full analytics', 'Team members (max 3)', 'Priority reports'],
     limits: { conversations: -1, agents: 3, channels: ['whatsapp', 'email', 'web'] },
   },
 };

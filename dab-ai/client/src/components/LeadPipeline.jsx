@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDown, Trash2, Download, CheckSquare, Square } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { apiDownload, apiRequest } from '../lib/api';
 
 const columns = [
   {
@@ -174,6 +174,15 @@ export default function LeadPipeline({ leads, selectedLead, movedLeadId, onSelec
     }
   }
 
+  async function handleExport() {
+    try {
+      setBulkError('');
+      await apiDownload('/leads/export.csv', 'dab-ai-leads.csv');
+    } catch (err) {
+      setBulkError(err.message || 'Export failed');
+    }
+  }
+
   const hasChecked = checkedIds.size > 0;
 
   return (
@@ -186,13 +195,14 @@ export default function LeadPipeline({ leads, selectedLead, movedLeadId, onSelec
               New → Qualified → Booked → Closed
             </p>
           </div>
-          <a
-            href="/api/leads/export.csv"
+          <button
+            type="button"
+            onClick={handleExport}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.08] hover:text-white"
           >
             <Download className="h-3 w-3" />
             Export
-          </a>
+          </button>
         </div>
 
         {/* Bulk action bar */}

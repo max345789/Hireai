@@ -13,7 +13,7 @@ import {
   Download,
   Filter,
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { apiDownload, apiRequest } from '../lib/api';
 
 const SMART_REPLIES_BY_STATUS = {
   new: [
@@ -193,6 +193,15 @@ export default function Inbox() {
     }
   }
 
+  async function handleExportCsv() {
+    try {
+      setError('');
+      await apiDownload('/leads/export.csv', 'dab-ai-leads.csv');
+    } catch (err) {
+      setError(err.message || 'Failed to export CSV');
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#090B12] p-3 text-[#F4F5FC] sm:p-5">
       <div className="mx-auto w-full max-w-[2200px] space-y-4">
@@ -215,13 +224,14 @@ export default function Inbox() {
                 Refresh
               </button>
 
-              <a
-                href="/api/leads/export.csv"
+              <button
+                type="button"
+                onClick={handleExportCsv}
                 className="inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-xs text-white/70 hover:bg-white/[0.08]"
               >
                 <Download className="h-3.5 w-3.5" />
                 Export CSV
-              </a>
+              </button>
 
               <Link
                 to="/settings"

@@ -57,11 +57,11 @@ export default function App() {
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/inbox" replace /> : <Login onAuth={(nextUser) => setUser(nextUser)} />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Login onAuth={(nextUser) => setUser(nextUser)} />}
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/inbox" replace /> : <Register onAuth={(nextUser) => setUser(nextUser)} />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Register onAuth={(nextUser) => setUser(nextUser)} />}
       />
       <Route path="/landing" element={<LandingPage />} />
       <Route
@@ -88,7 +88,7 @@ export default function App() {
           </ProtectedRoute>
         )}
       />
-      <Route path="/" element={<Navigate to={user ? '/inbox' : '/landing'} replace />} />
+      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/landing'} replace />} />
       <Route
         path="/settings"
         element={(
@@ -113,7 +113,7 @@ export default function App() {
           </ProtectedRoute>
         )}
       />
-      <Route path="*" element={<Navigate to={user ? '/inbox' : '/landing'} replace />} />
+      <Route path="*" element={<Navigate to={user ? '/dashboard' : '/landing'} replace />} />
     </Routes>
   );
 }

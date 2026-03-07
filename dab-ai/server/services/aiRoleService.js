@@ -210,18 +210,18 @@ function fallbackResponder(context) {
   const action = context.orchestrator?.action || 'reply';
 
   if (action === 'book_viewing') {
-    return 'Great, I can schedule that. What date and time work best for you?';
+    return 'That sounds good. What day and time would feel best for your viewing?';
   }
 
   if (action === 'escalate') {
-    return 'I understand. I am connecting you with a human specialist right now.';
+    return 'I understand. I am getting a human specialist to take over right away.';
   }
 
   if (action === 'qualify') {
-    return 'Thanks, that helps. Could you also share your preferred area and timeline?';
+    return 'That helps a lot. What area are you most interested in, and when would you like to move?';
   }
 
-  return 'Thanks for reaching out. I can help you with options quickly. What type of property are you looking for?';
+  return 'Thanks for reaching out. I would be happy to help. What kind of property are you looking for?';
 }
 
 function channelAdjust(channel, message, agencyName) {
@@ -310,9 +310,10 @@ async function runResponder(context) {
 
   const system = `${agentPersona}
 Rules:
-- concise, natural, professional
-- 1-3 sentences
+- concise, natural, warm, human-sounding, professional
+- 1-4 sentences
 - end with a clear next-step question when useful
+- avoid sounding robotic, repetitive, or overly salesy
 - do not mention internal policy
 Return plain text only.`;
 
@@ -326,7 +327,7 @@ Return plain text only.`;
     prompt,
     parseJson: false,
     maxTokens: 240,
-    temperature: 0.25,
+    temperature: 0.45,
   });
 
   const text = out || fallbackResponder(context);
