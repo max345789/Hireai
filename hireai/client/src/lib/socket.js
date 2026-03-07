@@ -13,7 +13,7 @@ function resolveSocketUrl() {
     return window.location.origin;
   }
 
-  return 'http://localhost:3001';
+  return '';
 }
 
 export function connectSocket() {

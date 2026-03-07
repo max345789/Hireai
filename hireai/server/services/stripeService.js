@@ -67,8 +67,8 @@ async function createCheckoutSession(user, planKey, successUrl, cancelUrl) {
     mode: 'subscription',
     customer: customer.id,
     line_items: [{ price: plan.priceId, quantity: 1 }],
-    success_url: successUrl || `${process.env.BASE_URL || 'http://localhost:3000'}/billing?success=1`,
-    cancel_url: cancelUrl || `${process.env.BASE_URL || 'http://localhost:3000'}/billing?cancelled=1`,
+    success_url: successUrl || `${process.env.BASE_URL}/billing?success=1`,
+    cancel_url: cancelUrl || `${process.env.BASE_URL}/billing?cancelled=1`,
     metadata: { userId: String(user.id), plan: planKey },
     subscription_data: { metadata: { userId: String(user.id), plan: planKey } },
   });
@@ -86,7 +86,7 @@ async function createPortalSession(user, returnUrl) {
 
   const session = await s.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: returnUrl || `${process.env.BASE_URL || 'http://localhost:3000'}/billing`,
+    return_url: returnUrl || `${process.env.BASE_URL}/billing`,
   });
 
   return session;

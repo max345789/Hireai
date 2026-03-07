@@ -22,7 +22,7 @@ function getOAuth2Client(calendarConfig) {
   const oauth2 = new google.auth.OAuth2(
     config.clientId,
     config.clientSecret,
-    config.redirectUri || 'http://localhost:3001/api/calendar/oauth/callback'
+    config.redirectUri || `${process.env.BASE_URL}/api/calendar/oauth/callback`
   );
 
   if (config.tokens) {

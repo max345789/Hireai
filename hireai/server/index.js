@@ -327,7 +327,7 @@ async function start() {
     printStartupBanner();
     logger.info('server_started', {
       port: env.port,
-      apiUrl: `http://localhost:${env.port}`,
+      apiUrl: process.env.BASE_URL || `http://localhost:${env.port}`,
       widgetUrl: `http://localhost:${env.port}/widget.js`,
       corsOrigins: env.corsOrigins,
     });
