@@ -101,12 +101,14 @@ function startupConfigChecks() {
     }
   }
 
-  const aiProvidersConfigured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
-  if (!aiProvidersConfigured) {
-    checks.push({
-      level: 'warn',
-      message: 'No cloud AI model key configured (ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY). System will run in resilient fallback mode.',
-    });
+  if (env.isProd) {
+    const aiProvidersConfigured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
+    if (!aiProvidersConfigured) {
+      checks.push({
+        level: 'warn',
+        message: 'No cloud AI model key configured (ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY). System will run in resilient fallback mode.',
+      });
+    }
   }
 
   if (env.bootstrapAdminOnStart) {
