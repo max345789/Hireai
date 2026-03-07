@@ -3,6 +3,7 @@ import {
   Send, Sparkles, MailPlus, X, Bell, CheckCircle2,
   MessageSquare, Mail, Globe, Bot, Zap, Users, Calendar,
   Settings, BarChart2, Inbox, RefreshCw, TrendingUp, Clock,
+  Link2, Unlink, Copy, Check, Eye, EyeOff, ChevronDown,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ConversationFeed from '../components/ConversationFeed';
@@ -33,25 +34,244 @@ function fmtTime(ts) {
   return d.toLocaleDateString([], { month:'short', day:'numeric' });
 }
 
+/* ─── Channel connect config ─────────────────────────────── */
+const CHANNEL_CONNECT_CONFIG = {
+  whatsapp: {
+    label: 'WhatsApp',
+    color: 'emerald',
+    icon: MessageSquare,
+    description: 'Connect via WhatsApp Business API',
+    providers: ['Twilio', 'Meta Cloud API', '360dialog', 'Vonage'],
+    fields: [
+      { key: 'provider',   label: 'Provider',          type: 'select' },
+      { key: 'accountSid', label: 'Account SID / App ID', type: 'text',     placeholder: 'AC...' },
+      { key: 'authToken',  label: 'Auth Token / Secret', type: 'password',  placeholder: 'Your auth token' },
+      { key: 'phone',      label: 'WhatsApp Number',    type: 'text',     placeholder: '+1 415 555 0000' },
+    ],
+  },
+  email: {
+    label: 'Email',
+    color: 'sky',
+    icon: Mail,
+    description: 'Connect via SMTP or OAuth',
+    providers: ['Gmail', 'Outlook / Office 365', 'Custom SMTP', 'SendGrid', 'Mailgun'],
+    fields: [
+      { key: 'provider',  label: 'Provider',      type: 'select' },
+      { key: 'smtpHost',  label: 'SMTP Host',     type: 'text',     placeholder: 'smtp.gmail.com' },
+      { key: 'smtpPort',  label: 'SMTP Port',     type: 'text',     placeholder: '587' },
+      { key: 'username',  label: 'Email / Login', type: 'text',     placeholder: 'you@example.com' },
+      { key: 'password',  label: 'Password / App Password', type: 'password', placeholder: '••••••••' },
+      { key: 'fromName',  label: 'From Name',     type: 'text',     placeholder: 'DAB AI' },
+    ],
+  },
+  web: {
+    label: 'Web Chat',
+    color: 'violet',
+    icon: Globe,
+    description: 'Embed the chat widget on your website',
+    providers: [],
+    fields: [
+      { key: 'widgetTitle',   label: 'Widget Title',    type: 'text', placeholder: 'Chat with us' },
+      { key: 'welcomeMsg',    label: 'Welcome Message', type: 'text', placeholder: 'Hi! How can we help?' },
+      { key: 'primaryColor',  label: 'Primary Color',   type: 'color' },
+    ],
+    embed: true,
+  },
+};
+
+const COLOR_MAP = {
+  emerald: { bg:'bg-emerald-50', border:'border-emerald-100', text:'text-emerald-600', badge:'bg-emerald-100 text-emerald-700', btn:'bg-emerald-500 hover:bg-emerald-600' },
+  sky:     { bg:'bg-sky-50',     border:'border-sky-100',     text:'text-sky-600',     badge:'bg-sky-100 text-sky-700',     btn:'bg-sky-500 hover:bg-sky-600' },
+  violet:  { bg:'bg-violet-50',  border:'border-violet-100',  text:'text-violet-600',  badge:'bg-violet-100 text-violet-700',  btn:'bg-violet-500 hover:bg-violet-600' },
+};
+
 /* ─── Stat Card ──────────────────────────────────────────── */
 const STAT_CONFIG = [
-  { key:'whatsapp',  label:'WhatsApp',   icon:MessageSquare, bg:'bg-emerald-50',  border:'border-emerald-100', text:'text-emerald-600', dot:'bg-emerald-400' },
-  { key:'email',     label:'Email',       icon:Mail,          bg:'bg-sky-50',      border:'border-sky-100',     text:'text-sky-600',     dot:'bg-sky-400' },
-  { key:'web',       label:'Web Chat',    icon:Globe,         bg:'bg-violet-50',   border:'border-violet-100',  text:'text-violet-600',  dot:'bg-violet-400' },
+  { key:'whatsapp',  label:'WhatsApp',   icon:MessageSquare, bg:'bg-emerald-50',  border:'border-emerald-100', text:'text-emerald-600', dot:'bg-emerald-400', connectable: true },
+  { key:'email',     label:'Email',       icon:Mail,          bg:'bg-sky-50',      border:'border-sky-100',     text:'text-sky-600',     dot:'bg-sky-400',     connectable: true },
+  { key:'web',       label:'Web Chat',    icon:Globe,         bg:'bg-violet-50',   border:'border-violet-100',  text:'text-violet-600',  dot:'bg-violet-400',  connectable: true },
   { key:'aiReplies', label:'AI Replies',  icon:Bot,           bg:'bg-orange-50',   border:'border-orange-100',  text:'text-coral',       dot:'bg-coral' },
   { key:'qualified', label:'Qualified',   icon:Users,         bg:'bg-amber-50',    border:'border-amber-100',   text:'text-amber-600',   dot:'bg-amber-400' },
   { key:'booked',    label:'Booked',      icon:Calendar,      bg:'bg-teal-50',     border:'border-teal-100',    text:'text-teal-600',    dot:'bg-teal-400' },
 ];
 
-function StatCard({ label, value, icon: Icon, bg, border, text, dot }) {
+function StatCard({ label, value, icon: Icon, bg, border, text, dot, connectable, connected, onConnect }) {
   return (
-    <div className={`bento-card ${bg} border ${border} px-4 py-3.5 flex items-center gap-3 min-w-0`}>
-      <div className={`flex-shrink-0 h-9 w-9 rounded-xl bg-white shadow-xs flex items-center justify-center`}>
+    <div className={`bento-card ${bg} border ${border} px-3 py-3 flex items-center gap-3 min-w-0 group relative`}>
+      <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-white shadow-xs flex items-center justify-center">
         <Icon className={`h-4 w-4 ${text}`} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className={`font-heading font-bold text-2xl leading-none tabular-nums ${text}`}>{value ?? 0}</p>
         <p className="mt-0.5 text-[11px] text-muted font-medium truncate">{label}</p>
+      </div>
+      {connectable && (
+        <button
+          onClick={onConnect}
+          title={connected ? `${label} connected — click to manage` : `Connect ${label}`}
+          className={`flex-shrink-0 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold transition-all border
+            ${connected
+              ? 'bg-white border-current opacity-80 hover:opacity-100'
+              : 'bg-white/70 border-dashed border-current hover:bg-white hover:opacity-100 opacity-60 group-hover:opacity-100'
+            } ${text}`}
+        >
+          {connected
+            ? <><CheckCircle2 className="h-3 w-3" /><span>Live</span></>
+            : <><Link2 className="h-3 w-3" /><span>Connect</span></>
+          }
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Channel Connect Modal ──────────────────────────────── */
+function ChannelConnectModal({ channel, saved, onSave, onDisconnect, onClose }) {
+  const cfg = CHANNEL_CONNECT_CONFIG[channel];
+  const colors = COLOR_MAP[cfg.color] || COLOR_MAP.sky;
+  const Icon = cfg.icon;
+
+  const [form, setForm] = useState(() => ({
+    provider: cfg.providers[0] || '',
+    primaryColor: '#FF6B35',
+    ...saved,
+  }));
+  const [showPw, setShowPw] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const embedCode = `<script>
+  window.DAB_WIDGET = {
+    apiUrl: "${window.location.origin || 'https://your-server.com'}",
+    title: "${form.widgetTitle || 'Chat with us'}",
+    welcome: "${form.welcomeMsg || 'Hi! How can we help?'}",
+    color: "${form.primaryColor || '#FF6B35'}",
+  };
+</script>
+<script src="${window.location.origin || 'https://your-server.com'}/widget.js" async></script>`;
+
+  function copyEmbed() {
+    navigator.clipboard.writeText(embedCode).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    await new Promise((r) => setTimeout(r, 400)); // simulate save
+    onSave(form);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bento-card w-full max-w-md shadow-card2 animate-scale-in overflow-hidden" onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className={`flex items-center justify-between px-5 py-4 ${colors.bg} border-b ${colors.border}`}>
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-white shadow-xs flex items-center justify-center">
+              <Icon className={`h-4 w-4 ${colors.text}`} />
+            </div>
+            <div>
+              <h2 className={`font-heading font-bold text-sm ${colors.text}`}>Connect {cfg.label}</h2>
+              <p className="text-[11px] text-muted">{cfg.description}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/60 transition-colors">
+            <X className="h-4 w-4 text-muted" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSave} className="px-5 py-4 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+
+          {/* Provider select */}
+          {cfg.providers.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-muted mb-1.5">Provider</label>
+              <div className="relative">
+                <select
+                  value={form.provider}
+                  onChange={(e) => setForm((p) => ({ ...p, provider: e.target.value }))}
+                  className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-coral/30 focus:border-coral/40 transition-all pr-8"
+                >
+                  {cfg.providers.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic fields */}
+          {cfg.fields.filter((f) => f.type !== 'select').map((field) => (
+            <div key={field.key}>
+              <label className="block text-xs font-semibold text-muted mb-1.5">{field.label}</label>
+              {field.type === 'color' ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form[field.key] || '#FF6B35'}
+                    onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                    className="h-9 w-14 rounded-lg border border-gray-200 cursor-pointer bg-gray-50 p-0.5"
+                  />
+                  <span className="text-xs text-muted font-mono">{form[field.key] || '#FF6B35'}</span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type={field.type === 'password' ? (showPw ? 'text' : 'password') : field.type}
+                    value={form[field.key] || ''}
+                    onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                    placeholder={field.placeholder}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-coral/30 focus:border-coral/40 transition-all pr-9"
+                  />
+                  {field.type === 'password' && (
+                    <button type="button" onClick={() => setShowPw((p) => !p)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors">
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Embed code for Web Chat */}
+          {cfg.embed && (
+            <div>
+              <label className="block text-xs font-semibold text-muted mb-1.5">Embed Code</label>
+              <div className="relative bg-gray-900 rounded-xl overflow-hidden">
+                <pre className="text-[10px] text-green-400 font-mono px-3 py-3 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
+                  {embedCode}
+                </pre>
+                <button type="button" onClick={copyEmbed}
+                  className="absolute top-2 right-2 flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-lg px-2 py-1 text-[10px] font-semibold transition-all">
+                  {copied ? <><Check className="h-3 w-3" />Copied!</> : <><Copy className="h-3 w-3" />Copy</>}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted mt-1.5">Paste this snippet before the &lt;/body&gt; tag on your website.</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button type="submit" disabled={saving}
+              className={`flex-1 text-white rounded-xl py-2.5 font-semibold text-sm transition-all shadow-xs flex items-center justify-center gap-2 ${colors.btn} disabled:opacity-60`}>
+              {saving
+                ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Saving…</>
+                : <><CheckCircle2 className="h-3.5 w-3.5" />Save & Connect</>
+              }
+            </button>
+            {saved && (
+              <button type="button" onClick={onDisconnect}
+                className="flex items-center gap-1.5 bg-rose/10 text-rose border border-rose/20 rounded-xl px-3 py-2 text-xs font-semibold hover:bg-rose/20 transition-all">
+                <Unlink className="h-3.5 w-3.5" />Disconnect
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -138,7 +358,12 @@ export default function Dashboard({ user, onLogout }) {
   const [showSimModal, setShowSimModal]     = useState(false);
   const [simLoading, setSimLoading]         = useState(false);
   const [simForm, setSimForm]               = useState({ name:'Sarah', phone:'+1555000111', message:'I want to buy an apartment', channel:'whatsapp' });
-  const [activeTab, setActiveTab]           = useState('conversations'); // 'conversations' | 'pipeline' | 'bookings'
+
+  // ── Channel connection state ──
+  const [channelConnections, setChannelConnections] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dab_channel_connections') || '{}'); } catch { return {}; }
+  });
+  const [connectingChannel, setConnectingChannel] = useState(null); // 'whatsapp' | 'email' | 'web' | null
 
   const selectedLeadIdRef = useRef(selectedLeadId);
   const leadsRef          = useRef(leads);
@@ -178,6 +403,23 @@ export default function Dashboard({ user, onLogout }) {
 
   function pushAlert(payload) {
     setAlerts((prev) => [{ id: Date.now() + Math.random(), title: payload.title, body: payload.body, leadId: payload.leadId || null, urgent: Boolean(payload.urgent), read: false, createdAt: new Date().toISOString() }, ...prev].slice(0, 40));
+  }
+
+  // ── Save channel connection ──
+  function handleChannelSave(channel, formData) {
+    const updated = { ...channelConnections, [channel]: formData };
+    setChannelConnections(updated);
+    try { localStorage.setItem('dab_channel_connections', JSON.stringify(updated)); } catch {}
+    setConnectingChannel(null);
+    pushAlert({ title: `${CHANNEL_CONNECT_CONFIG[channel].label} Connected`, body: `Your ${CHANNEL_CONNECT_CONFIG[channel].label} channel is now active.` });
+  }
+
+  function handleChannelDisconnect(channel) {
+    const updated = { ...channelConnections };
+    delete updated[channel];
+    setChannelConnections(updated);
+    try { localStorage.setItem('dab_channel_connections', JSON.stringify(updated)); } catch {}
+    setConnectingChannel(null);
   }
 
   /* ── Data load ── */
@@ -300,7 +542,6 @@ export default function Dashboard({ user, onLogout }) {
 
       {/* ── TOP NAV ── */}
       <header className="flex-shrink-0 bg-white border-b border-black/[0.07] px-4 h-14 flex items-center gap-3 shadow-xs z-30">
-        {/* Logo */}
         <div className="flex items-center gap-2 mr-2">
           <div className="h-8 w-8 rounded-xl bg-coral flex items-center justify-center shadow-xs">
             <span className="text-white font-heading font-bold text-sm">D</span>
@@ -308,7 +549,6 @@ export default function Dashboard({ user, onLogout }) {
           <span className="font-heading font-bold text-ink text-base hidden sm:block">DAB AI</span>
         </div>
 
-        {/* Agent badge */}
         <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
           <span className="text-xs font-semibold text-emerald-700">Agent Active</span>
@@ -316,7 +556,6 @@ export default function Dashboard({ user, onLogout }) {
 
         <div className="flex-1" />
 
-        {/* Nav links */}
         <nav className="hidden md:flex items-center gap-1">
           {[
             { to:'/dashboard', icon:BarChart2, label:'Dashboard' },
@@ -332,14 +571,12 @@ export default function Dashboard({ user, onLogout }) {
           ))}
         </nav>
 
-        {/* Actions */}
         <button onClick={() => setShowSimModal(true)}
           className="flex items-center gap-1.5 bg-coral text-white rounded-xl px-3 py-1.5 text-sm font-semibold hover:opacity-90 transition-opacity shadow-xs">
           <MailPlus className="h-3.5 w-3.5" />
           <span className="hidden sm:block">Simulate Lead</span>
         </button>
 
-        {/* Alerts bell */}
         <button onClick={() => setShowAlerts(!showAlerts)} className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors">
           <Bell className="h-4 w-4 text-muted" />
           {unreadAlerts > 0 && (
@@ -379,7 +616,13 @@ export default function Dashboard({ user, onLogout }) {
       <div className="flex-shrink-0 px-4 pt-3 pb-0">
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {STAT_CONFIG.map((cfg) => (
-            <StatCard key={cfg.key} {...cfg} value={todayStats[cfg.key] ?? 0} />
+            <StatCard
+              key={cfg.key}
+              {...cfg}
+              value={todayStats[cfg.key] ?? 0}
+              connected={Boolean(channelConnections[cfg.key])}
+              onConnect={cfg.connectable ? () => setConnectingChannel(cfg.key) : undefined}
+            />
           ))}
         </div>
       </div>
@@ -397,8 +640,6 @@ export default function Dashboard({ user, onLogout }) {
 
           {/* ── LEFT: Lead List + Conversation ── */}
           <div className="col-span-12 lg:col-span-5 flex flex-col gap-3 min-h-0">
-
-            {/* Lead list */}
             <div className="bento-card flex flex-col" style={{ height: '220px' }}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -421,7 +662,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Conversation + send */}
             <div className="bento-card flex flex-col flex-1 min-h-0">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -458,7 +698,6 @@ export default function Dashboard({ user, onLogout }) {
 
           {/* ── MIDDLE: Pipeline + Activity ── */}
           <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 min-h-0">
-            {/* Pipeline */}
             <div className="bento-card flex flex-col flex-1 min-h-0">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <Zap className="h-4 w-4 text-amber-500" />
@@ -469,7 +708,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Activity log */}
             <div className="bento-card flex flex-col" style={{ height: '200px' }}>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <Bot className="h-4 w-4 text-violet" />
@@ -490,7 +728,6 @@ export default function Dashboard({ user, onLogout }) {
 
           {/* ── RIGHT: Bookings + Stats ── */}
           <div className="col-span-12 lg:col-span-3 flex flex-col gap-3 min-h-0">
-            {/* Bookings */}
             <div className="bento-card flex flex-col flex-1 min-h-0">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <Calendar className="h-4 w-4 text-teal-500" />
@@ -502,7 +739,6 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Quick stats */}
             <div className="bento-card px-4 py-3 flex-shrink-0">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="h-4 w-4 text-coral" />
@@ -523,7 +759,31 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
 
-            {/* Links */}
+            {/* Channel quick-connect strip */}
+            <div className="bento-card px-3 py-3 flex-shrink-0">
+              <p className="text-[10px] font-bold text-muted uppercase tracking-wide mb-2">Channels</p>
+              <div className="flex flex-col gap-1.5">
+                {['whatsapp', 'email', 'web'].map((ch) => {
+                  const cfg = CHANNEL_CONNECT_CONFIG[ch];
+                  const colors = COLOR_MAP[cfg.color];
+                  const Icon = cfg.icon;
+                  const isConnected = Boolean(channelConnections[ch]);
+                  return (
+                    <button key={ch} onClick={() => setConnectingChannel(ch)}
+                      className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-all border
+                        ${isConnected ? `${colors.bg} ${colors.border}` : 'bg-gray-50 border-gray-200 hover:border-gray-300'}`}>
+                      <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${isConnected ? colors.text : 'text-muted'}`} />
+                      <span className={`text-xs font-semibold flex-1 ${isConnected ? colors.text : 'text-muted'}`}>{cfg.label}</span>
+                      {isConnected
+                        ? <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${colors.badge}`}>Live</span>
+                        : <span className="text-[9px] font-bold text-muted bg-gray-200 rounded-full px-1.5 py-0.5">Connect</span>
+                      }
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex gap-2 flex-shrink-0">
               <Link to="/analytics" className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-gray-200 rounded-xl py-2.5 text-xs font-semibold text-muted hover:text-ink hover:border-gray-300 transition-all">
                 <BarChart2 className="h-3.5 w-3.5" /> Analytics
@@ -535,6 +795,17 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
       </main>
+
+      {/* ── CHANNEL CONNECT MODAL ── */}
+      {connectingChannel && (
+        <ChannelConnectModal
+          channel={connectingChannel}
+          saved={channelConnections[connectingChannel] || null}
+          onSave={(data) => handleChannelSave(connectingChannel, data)}
+          onDisconnect={() => handleChannelDisconnect(connectingChannel)}
+          onClose={() => setConnectingChannel(null)}
+        />
+      )}
 
       {/* ── SIMULATE LEAD MODAL ── */}
       {showSimModal && (
