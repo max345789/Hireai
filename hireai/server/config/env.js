@@ -54,6 +54,7 @@ const env = {
   webhookPayloadMaxChars: toInt(process.env.WEBHOOK_PAYLOAD_MAX_CHARS, 12000),
   backupDir: process.env.BACKUP_DIR || 'server/backups',
   allowMockDelivery: toBoolean(process.env.ALLOW_MOCK_DELIVERY, !isProd),
+  aiModelChain: process.env.AI_MODEL_CHAIN || 'claude,openai,gemini',
   bootstrapAdminOnStart: toBoolean(process.env.BOOTSTRAP_ADMIN_ON_START, false),
   bootstrapAdminEmail: process.env.ADMIN_EMAIL ? String(process.env.ADMIN_EMAIL).trim().toLowerCase() : null,
   bootstrapAdminPassword: process.env.ADMIN_PASSWORD || null,
@@ -100,6 +101,16 @@ function startupConfigChecks() {
     }
   }
 
+  if (env.isProd) {
+    const aiProvidersConfigured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
+    if (!aiProvidersConfigured) {
+      checks.push({
+        level: 'warn',
+        message: 'No cloud AI model key configured (ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY). System will run in resilient fallback mode.',
+      });
+    }
+  }
+
   if (env.bootstrapAdminOnStart) {
     if (!env.bootstrapAdminEmail || !env.bootstrapAdminPassword) {
       checks.push({
@@ -132,6 +143,7 @@ function startupConfigChecks() {
 
   return checks;
 }
+
 
 module.exports = {
   env,

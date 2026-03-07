@@ -66,7 +66,10 @@ npm run restore --prefix server -- /absolute/path/to/backup.db
 - CI workflow for server tests + client build + API smoke checks
 
 ## Documentation
+- Architecture overview: `docs/ARCHITECTURE.md`
+- UI uplift plan (7.1 → 9.0): `docs/UI-9.0-PASS-PLAN.md`
 - Production checklist: `docs/PRODUCTION-CHECKLIST.md`
+- Launch day checklist: `docs/LAUNCH-DAY-CHECKLIST.md`
 - Runbooks:
   - `docs/runbooks/incident-response.md`
   - `docs/runbooks/channel-outage.md`
@@ -78,3 +81,5 @@ For platforms with read-only app directories, set `DB_PATH=/tmp/hireai.db`.
 For production:
 - `ALLOW_MOCK_DELIVERY=false`
 - `BOOTSTRAP_ADMIN_ON_START=false`
+- Configure AI chain with one or more keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`
+- Optional model order override: `AI_MODEL_CHAIN=claude,openai,gemini`
