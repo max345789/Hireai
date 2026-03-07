@@ -2,6 +2,7 @@ import { useRef, useLayoutEffect } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { CheckCircle2 } from 'lucide-react';
+import { Particles } from '@/components/ui/particles';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -56,15 +57,24 @@ const FinalCTASection = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-flowing bg-background py-24 lg:py-32"
+      className="section-flowing bg-background py-16 sm:py-20 lg:py-28"
     >
-      <div className="max-w-4xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div
           ref={cardRef}
           className="card-dark p-8 lg:p-12 relative overflow-hidden"
         >
           {/* Background gradient */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+          {/* Particles */}
+          <Particles
+            className="absolute inset-0"
+            quantity={60}
+            ease={80}
+            color="#b6ff2e"
+            size={0.5}
+          />
 
           <div className="relative z-10">
             <div className="max-w-xl min-w-0">
@@ -78,18 +88,18 @@ const FinalCTASection = () => {
               </p>
 
               {/* CTAs */}
-              <div className="flex flex-wrap gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8">
                 <a
                   href="/register"
                   ref={(el) => { buttonRefs.current[0] = el; }}
-                  className="btn-primary"
+                  className="btn-primary w-full sm:w-auto text-center"
                 >
                   Start free
                 </a>
                 <a
                   href="/login"
                   ref={(el) => { buttonRefs.current[1] = el; }}
-                  className="btn-secondary"
+                  className="btn-secondary w-full sm:w-auto text-center"
                 >
                   Talk to sales
                 </a>
@@ -126,7 +136,7 @@ const FinalCTASection = () => {
 
         {/* Footer */}
         <footer className="mt-20 pt-8 border-t border-white/[0.08]">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             {/* Logo */}
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">

@@ -89,9 +89,9 @@ const PricingSection = () => {
     <section
       id="pricing"
       ref={sectionRef}
-      className="section-flowing bg-background py-24 lg:py-32"
+      className="section-flowing bg-background py-16 sm:py-20 lg:py-28"
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-12">
           <p className="label-mono mb-4">PRICING</p>

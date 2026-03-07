@@ -206,7 +206,7 @@ const DashboardPreviewSection = () => {
               </div>
             </header>
 
-            <div className="flex-1 p-4 sm:p-6 overflow-auto min-w-0">
+            <div className="flex-1 p-4 sm:p-6 lg:pr-72 overflow-auto min-w-0">
               <div className="mb-6 min-w-0">
                 <h2 className="font-sora font-bold text-xl sm:text-2xl mb-1 break-words">
                   Your hiring command center
@@ -216,7 +216,7 @@ const DashboardPreviewSection = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {metrics.map((metric) => {
                   const Icon = metric.icon;
                   const isPositive = metric.change.startsWith('+');
@@ -288,7 +288,7 @@ const DashboardPreviewSection = () => {
             ref={activityCardRef}
             className={`card-dark p-4 shadow-2xl ${
               isDesktop
-                ? 'relative m-4 mt-0 xl:absolute xl:right-4 xl:top-20 xl:m-0 xl:w-64'
+                ? 'relative m-4 mt-0 lg:absolute lg:right-4 lg:top-20 lg:m-0 lg:w-64'
                 : 'relative m-4 mt-0'
             }`}
           >

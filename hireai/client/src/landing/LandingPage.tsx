@@ -95,15 +95,15 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div ref={mainRef} className="relative bg-background min-h-screen overflow-x-clip">
+    <div ref={mainRef} className="relative bg-background min-h-screen">
       {/* Noise overlay */}
       <div className="noise-overlay" />
-      
+
       {/* Navigation */}
       <Navigation />
-      
+
       {/* Sections */}
-      <main className="relative overflow-x-clip">
+      <main className="relative">
         <HeroSection />
         <ModularGridSection />
         <DashboardPreviewSection />

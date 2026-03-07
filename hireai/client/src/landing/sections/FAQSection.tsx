@@ -73,13 +73,13 @@ const FAQSection = () => {
     <section
       id="faq"
       ref={sectionRef}
-      className="section-flowing bg-secondary/30 py-24 lg:py-32"
+      className="section-flowing bg-secondary/30 py-16 sm:py-20 lg:py-28"
     >
-      <div className="max-w-3xl mx-auto px-6">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-10 sm:mb-12">
           <p className="label-mono mb-4">FAQ</p>
-          <h2 className="font-sora font-bold text-3xl lg:text-4xl mb-4">
+          <h2 className="font-sora font-bold text-2xl sm:text-3xl lg:text-4xl mb-4">
             Frequently asked questions
           </h2>
           <p className="text-muted-foreground">

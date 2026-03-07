@@ -208,13 +208,13 @@ const HowItWorksSection = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-flowing bg-background py-24 lg:py-32"
+      className="section-flowing bg-background py-16 sm:py-20 lg:py-28"
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12 sm:mb-16">
           <p className="label-mono mb-4">HOW IT WORKS</p>
-          <h2 className="font-sora font-bold text-3xl lg:text-4xl mb-4">
+          <h2 className="font-sora font-bold text-2xl sm:text-3xl lg:text-4xl mb-4">
             Set up in minutes, not months
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
@@ -241,7 +241,7 @@ const HowItWorksSection = () => {
             />
           </svg>
 
-          <div className="space-y-12 lg:space-y-24">
+          <div className="space-y-10 sm:space-y-14 lg:space-y-24">
             {steps.map((step, index) => {
               const Icon = step.icon;
               const isEven = index % 2 === 0;

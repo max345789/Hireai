@@ -46,21 +46,23 @@ const TestimonialsSection = () => {
             }
           );
 
-          // Parallax separation
-          gsap.fromTo(
-            card,
-            { y: 0 },
-            {
-              y: i === 0 ? -20 : -10,
-              ease: 'none',
-              scrollTrigger: {
-                trigger: sectionRef.current,
-                start: 'top bottom',
-                end: 'bottom top',
-                scrub: true,
-              },
-            }
-          );
+          // Parallax separation — desktop only to avoid mobile jank
+          if (window.matchMedia('(min-width: 1024px)').matches) {
+            gsap.fromTo(
+              card,
+              { y: 0 },
+              {
+                y: i === 0 ? -20 : -10,
+                ease: 'none',
+                scrollTrigger: {
+                  trigger: sectionRef.current,
+                  start: 'top bottom',
+                  end: 'bottom top',
+                  scrub: true,
+                },
+              }
+            );
+          }
         }
       });
     }, sectionRef);
@@ -71,11 +73,11 @@ const TestimonialsSection = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-flowing bg-background py-24 lg:py-32"
+      className="section-flowing bg-background py-16 sm:py-20 lg:py-28"
     >
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12 sm:mb-16">
           <p className="label-mono mb-4">TESTIMONIALS</p>
           <h2 className="font-sora font-bold text-3xl lg:text-4xl mb-4">
             Loved by hiring teams

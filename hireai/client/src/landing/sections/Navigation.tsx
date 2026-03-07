@@ -41,7 +41,7 @@ const Navigation = () => {
           </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden lg:flex items-center gap-8">
             <button
               onClick={() => scrollToSection('features')}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -63,13 +63,13 @@ const Navigation = () => {
           </div>
 
           {/* CTA Button */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <a href="/register" className="btn-primary text-sm">Start free</a>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="lg:hidden p-2"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -83,7 +83,7 @@ const Navigation = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-card border-t border-white/[0.08] px-6 py-4">
+        <div className="lg:hidden bg-card border-t border-white/[0.08] px-6 py-4">
           <div className="flex flex-col gap-4">
             <button
               onClick={() => scrollToSection('features')}

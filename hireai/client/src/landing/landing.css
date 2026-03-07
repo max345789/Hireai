@@ -44,9 +44,8 @@
   
   html {
     scroll-behavior: smooth;
-    overflow-x: clip;
   }
-  
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
@@ -105,7 +104,7 @@
   }
   
   .section-flowing {
-    @apply relative w-full py-20;
+    @apply relative w-full;
   }
   
   .label-mono {

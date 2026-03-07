@@ -44,7 +44,10 @@ const IntegrationsSection = () => {
         }
       );
 
-      // Row parallax
+      // Row parallax — desktop only to avoid mobile jank
+      const isDesktopNow = window.matchMedia('(min-width: 1024px)').matches;
+      if (!isDesktopNow) return;
+
       if (row1Ref.current) {
         gsap.fromTo(
           row1Ref.current,
@@ -86,7 +89,7 @@ const IntegrationsSection = () => {
   return (
     <section
       ref={sectionRef}
-      className="section-flowing bg-secondary/30 py-24 lg:py-32 overflow-hidden"
+      className="section-flowing bg-secondary/30 py-16 sm:py-20 lg:py-28 overflow-hidden"
     >
       <div className="max-w-6xl mx-auto px-6">
         {/* Header */}
