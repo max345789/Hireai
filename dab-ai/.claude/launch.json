@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dab-ai-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/sarath/Documents/New project/dab-ai/server",
+      "port": 3001
+    },
+    {
+      "name": "dab-ai-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/sarath/Documents/New project/dab-ai/client",
+      "port": 3000
+    }
+  ]
+}
